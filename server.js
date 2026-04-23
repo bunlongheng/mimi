@@ -11,7 +11,6 @@ const MODEL   = path.join(__dirname, 'models/ggml-tiny.en.bin');
 const WHISPER = '/opt/homebrew/bin/whisper-cli';
 const FFMPEG  = '/opt/homebrew/bin/ffmpeg';
 
-// In-memory session state (menu bar polls this)
 const session = { capturing: false, startedAt: null };
 
 const cors = {
@@ -20,28 +19,112 @@ const cors = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
+// ── SSE clients ────────────────────────────────────────────────────────────
+const sseClients = new Set();
+
+function broadcast(text) {
+  const msg = `data: ${JSON.stringify({ text })}\n\n`;
+  for (const res of sseClients) {
+    try { res.write(msg); } catch {}
+  }
+}
+
+// ── Server-side system audio capture (AudioTee — no browser picker needed) ─
+let audioTee    = null;
+let pcmChunks   = [];
+let captureLoop = null;
+const modelReady = () => fs.existsSync(MODEL) && fs.statSync(MODEL).size > 1_000_000;
+
+function startAudioCapture() {
+  if (audioTee) return;
+  try {
+    const { AudioTee } = require('audiotee');
+    audioTee = new AudioTee();
+    audioTee.on('data', chunk => { if (session.capturing) pcmChunks.push(chunk.data); });
+    audioTee.on('error', e => console.error('AudioTee:', e.message));
+    audioTee.start();
+    console.log('耳  System audio capture started (AudioTee)');
+  } catch (e) {
+    console.error('耳  AudioTee failed:', e.message);
+  }
+
+  captureLoop = setInterval(async () => {
+    if (!session.capturing || !modelReady() || pcmChunks.length < 10) {
+      pcmChunks = [];
+      return;
+    }
+    const pcm = Buffer.concat(pcmChunks);
+    pcmChunks = [];
+
+    const tmpPcm = path.join(os.tmpdir(), `mimi-sys-${Date.now()}.raw`);
+    const tmpWav = path.join(os.tmpdir(), `mimi-sys-${Date.now()}.wav`);
+    try {
+      fs.writeFileSync(tmpPcm, pcm);
+      // AudioTee: f32le stereo 48kHz → 16kHz mono s16 for whisper
+      execSync(
+        `"${FFMPEG}" -y -f f32le -ar 48000 -ac 2 -i "${tmpPcm}" -ar 16000 -ac 1 -sample_fmt s16 "${tmpWav}" 2>/dev/null`,
+        { timeout: 10000 }
+      );
+      const raw = execSync(`"${WHISPER}" -m "${MODEL}" -f "${tmpWav}" -np -nt 2>/dev/null`, { timeout: 30000 }).toString();
+      const text = raw.split('\n').map(l => l.replace(/^\[.*?\]\s*/, '').trim()).filter(Boolean).join(' ').trim();
+      if (text) {
+        console.log('耳  [them]', text.slice(0, 80));
+        broadcast(text);
+      }
+    } catch {}
+    finally {
+      try { fs.unlinkSync(tmpPcm); } catch {}
+      try { fs.unlinkSync(tmpWav); } catch {}
+    }
+  }, 4000);
+}
+
+function stopAudioCapture() {
+  if (captureLoop) { clearInterval(captureLoop); captureLoop = null; }
+  if (audioTee)    { try { audioTee.stop(); } catch {} audioTee = null; }
+  pcmChunks = [];
+}
+
+// ── HTTP server ────────────────────────────────────────────────────────────
 const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(204, cors); res.end(); return; }
-
   const url = req.url.split('?')[0];
 
-  // ── Serve UI ─────────────────────────────────────────────────────────
+  // Serve UI
   if (req.method === 'GET' && (url === '/' || url === '/index.html')) {
     res.writeHead(200, { ...cors, 'Content-Type': 'text/html; charset=utf-8' });
     res.end(fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8'));
     return;
   }
 
-  // ── Session status (menu bar + preflight) ─────────────────────────────
-  if (req.method === 'GET' && url === '/api/session/status') {
-    const modelReady = fs.existsSync(MODEL) && fs.statSync(MODEL).size > 1_000_000;
-    const apiKeySet  = !!(process.env.ANTHROPIC_API_KEY?.startsWith('sk-'));
-    res.writeHead(200, { ...cors, 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ capturing: session.capturing, modelReady, apiKeySet, uptime: process.uptime() }));
+  // SSE — browser subscribes to receive "them" transcriptions
+  if (req.method === 'GET' && url === '/api/stream/them') {
+    res.writeHead(200, {
+      ...cors,
+      'Content-Type':  'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection':    'keep-alive',
+    });
+    res.write(':ok\n\n');
+    sseClients.add(res);
+    req.on('close', () => sseClients.delete(res));
     return;
   }
 
-  // ── Update session state (browser → server) ────────────────────────────
+  // Session status
+  if (req.method === 'GET' && url === '/api/session/status') {
+    res.writeHead(200, { ...cors, 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      capturing: session.capturing,
+      modelReady: modelReady(),
+      apiKeySet: !!(process.env.ANTHROPIC_API_KEY?.startsWith('sk-')),
+      uptime: process.uptime(),
+      audioTeeActive: !!audioTee,
+    }));
+    return;
+  }
+
+  // Update session state — starts/stops server-side audio capture
   if (req.method === 'POST' && url === '/api/session/update') {
     let body = ''; req.on('data', c => body += c);
     req.on('end', () => {
@@ -54,7 +137,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── Open macOS System Preferences ──────────────────────────────────────
+  // Open macOS System Preferences
   if (req.method === 'POST' && url === '/api/open-prefs') {
     let body = ''; req.on('data', c => body += c);
     req.on('end', () => {
@@ -75,7 +158,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── Set API key inline ─────────────────────────────────────────────────
+  // Set API key
   if (req.method === 'POST' && url === '/api/set-key') {
     let body = ''; req.on('data', c => body += c);
     req.on('end', () => {
@@ -93,15 +176,14 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── Model status ───────────────────────────────────────────────────────
+  // Model status
   if (req.method === 'GET' && url === '/api/model-status') {
-    const ready = fs.existsSync(MODEL) && fs.statSync(MODEL).size > 1_000_000;
     res.writeHead(200, { ...cors, 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ready }));
+    res.end(JSON.stringify({ ready: modelReady() }));
     return;
   }
 
-  // ── Transcribe audio chunk ─────────────────────────────────────────────
+  // Transcribe audio chunk (mic fallback / manual use)
   if (req.method === 'POST' && url === '/api/transcribe') {
     const chunks = []; req.on('data', c => chunks.push(c));
     req.on('end', () => {
@@ -130,7 +212,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── Save transcript ────────────────────────────────────────────────────
+  // Save transcript
   if (req.method === 'POST' && url === '/api/save') {
     let body = ''; req.on('data', c => body += c);
     req.on('end', () => {
@@ -148,7 +230,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // ── Claude summary ─────────────────────────────────────────────────────
+  // Claude summary
   if (req.method === 'POST' && url === '/api/summary') {
     let body = ''; req.on('data', c => body += c);
     req.on('end', async () => {
@@ -179,8 +261,8 @@ server.on('error', e => {
 });
 
 server.listen(PORT, () => {
-  const modelReady = fs.existsSync(MODEL) && fs.statSync(MODEL).size > 1_000_000;
   console.log(`\n耳  Mimi → http://localhost:${PORT}`);
-  console.log(`   model : ${modelReady ? '✓ ready' : '⚠ missing (download needed)'}`);
-  console.log(`   ffmpeg: ${fs.existsSync(FFMPEG) ? '✓ ready' : '✗ missing (brew install ffmpeg)'}\n`);
+  console.log(`   model : ${modelReady() ? '✓ ready' : '⚠ missing'}`);
+  console.log(`   ffmpeg: ${fs.existsSync(FFMPEG) ? '✓ ready' : '✗ missing'}\n`);
+  startAudioCapture(); // always-on system audio — no browser picker needed
 });

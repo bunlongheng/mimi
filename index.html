@@ -295,10 +295,7 @@ button:disabled { opacity:.3; cursor:not-allowed; }
   <div class="live-inner">
     <div class="live-text" id="youLive"></div>
     <div id="sysAudioStatus" style="font-size:10px;color:var(--muted);font-family:'SF Mono',monospace;min-height:14px"></div>
-    <div style="display:flex;gap:8px">
-      <button id="btnSysAudio" style="display:none;flex:1;border-color:rgba(34,197,94,.4);color:#16a34a" onclick="startCaptureAuto()">+ System Audio</button>
-      <button id="btnStop" style="flex:1" onclick="stopEverything()">Stop</button>
-    </div>
+    <button id="btnStop" onclick="stopEverything()">Stop</button>
   </div>
 </div>
 
@@ -351,7 +348,7 @@ button:disabled { opacity:.3; cursor:not-allowed; }
 <script>
 const ch = { you:{r:null,on:false,lines:[]}, them:{r:null,on:false,lines:[]} };
 let startMs=null, timerTick=null, isRecording=false;
-let captureStream=null, captureRecorder=null, captureOn=false, captureRequesting=false;
+let themSSE=null; // server-sent events for system audio transcription
 
 // ── Utils ──────────────────────────────────────────────────────────────
 function elapsed() {
@@ -409,21 +406,18 @@ async function startEverything() {
   document.getElementById('recDot').className='dot live';
   document.getElementById('recLabel').textContent='live';
   updateSession(true);
-  // Show system audio button — user taps it when ready (no auto-popup)
-  document.getElementById('btnSysAudio').style.display='block';
-  document.getElementById('btnSysAudio').textContent='+ System Audio';
+  startThemSSE(); // subscribe to server-side system audio — no browser picker
 }
 
 
 function stopEverything() {
   ch.you.on=false; ch.you.r?.stop(); ch.you.r=null;
   if (captureRecorder?.state==='recording') captureRecorder.stop();
-  captureRecorder=null; captureOn=false;
-  // keep captureStream alive — reuse on restart, no repicking
+  stopThemSSE();
   renderLive('youLive','','you');
+  document.getElementById('sysAudioStatus').textContent='';
   isRecording=false; startMs=null;
   document.getElementById('btnStop').style.display='none';
-  document.getElementById('btnSysAudio').style.display='none';
   document.getElementById('timer').textContent='00:00:00';
   if (document.getElementById('chat').children.length===0) {
     document.getElementById('emptyState').style.display='flex';
@@ -461,93 +455,27 @@ function buildRec(side) {
   return r;
 }
 
-// ── System audio (auto-triggered with start) ───────────────────────────
-async function startCaptureAuto() {
-  if (captureRequesting || captureOn) return;
-  document.getElementById('btnSysAudio').textContent='Waiting for share…';
-  document.getElementById('btnSysAudio').disabled=true;
-  captureRequesting=true;
-
-  // Reuse existing stream if audio track is still live — no picker needed
-  const existingAudio = captureStream?.getAudioTracks().find(t=>t.readyState==='live');
-  if (!existingAudio) {
+// ── System audio via SSE — server captures via AudioTee, no browser picker ─
+function startThemSSE() {
+  if (themSSE) return;
+  themSSE = new EventSource('/api/stream/them');
+  themSSE.onmessage = e => {
     try {
-      const s=await fetch('/api/model-status'); const d=await s.json();
-      if (!d.ready) { captureRequesting=false; return; }
-    } catch { captureRequesting=false; return; }
-
-    try {
-      captureStream=await navigator.mediaDevices.getDisplayMedia({
-        video:true,
-        audio:{ echoCancellation:false, noiseSuppression:false }
-      });
-      setCheck('screen',true);
-    } catch {
-      captureRequesting=false;
-      document.getElementById('btnSysAudio').textContent='+ System Audio';
-      return;
-    }
-    localStorage.setItem('mimiScreenGranted','1');
-  }
-  captureRequesting=false;
-  document.getElementById('btnSysAudio').disabled=false;
-
-  const audioTrack=captureStream.getAudioTracks()[0];
-  if (!audioTrack) {
-    showToast('Select a tab → tick "Also share tab audio" → Share',5000);
-    captureStream=null;
-    document.getElementById('btnSysAudio').textContent='+ System Audio';
-    return;
-  }
-  // hide button — system audio is now active
-  document.getElementById('btnSysAudio').style.display='none';
-
-  captureOn=true;
-  // use captureStream directly — don't stop video or rewrap, keeps track alive
-  const audioStream=new MediaStream([audioTrack]);
-
-  // When user clicks "Stop sharing" in Chrome's bar, clean up gracefully
-  audioTrack.onended=()=>{
-    captureOn=false; captureStream=null; captureRecorder=null;
-    if (isRecording) {
-      showToast('System audio ended — mic still active',3000);
-      document.getElementById('btnSysAudio').style.display='block';
-      document.getElementById('btnSysAudio').textContent='+ System Audio';
-    }
-  };
-
-  function startChunk() {
-    if (!captureOn || audioTrack.readyState==='ended') return;
-    console.log('[mimi] startChunk, track state:', audioTrack.readyState);
-    const mimeType=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus' : 'audio/webm';
-    const rec=new MediaRecorder(audioStream,{mimeType});
-    const chunks=[];
-    rec.ondataavailable=e=>{ if(e.data.size>0) chunks.push(e.data); };
-    rec.onstop=async()=>{
-      if (!captureOn) return;
-      const blob=new Blob(chunks,{type:'audio/webm'});
-      console.log('[mimi] chunk blob size:', blob.size);
-      document.getElementById('sysAudioStatus').textContent=`🎧 chunk ${Math.round(blob.size/1024)}KB`;
-      if (blob.size<500) {
-        document.getElementById('sysAudioStatus').textContent='🎧 silent chunk';
-        startChunk(); return;
+      const { text } = JSON.parse(e.data);
+      if (text && isRecording) {
+        addBubble('them', text);
+        renderLive(null, '', 'them');
+        document.getElementById('sysAudioStatus').textContent = `🎧 ${text.slice(0,40)}`;
       }
-      try {
-        const buf=await blob.arrayBuffer();
-        const r=await fetch('/api/transcribe',{method:'POST',headers:{'Content-Type':'audio/webm'},body:buf});
-        const d=await r.json();
-        console.log('[mimi] transcribe result:', d);
-        document.getElementById('sysAudioStatus').textContent = d.text?.trim() ? `🎧 got: "${d.text.trim().slice(0,30)}…"` : '🎧 transcribed (silent)';
-        if (d.text?.trim()) { addBubble('them',d.text.trim()); renderLive(null,'','them'); }
-        else renderLive(null,'','them');
-      } catch(e) { console.error('[mimi] transcribe error:', e); document.getElementById('sysAudioStatus').textContent=`🎧 error: ${e.message}`; renderLive(null,'','them'); }
-      startChunk();
-    };
-    try { captureRecorder=rec; rec.start(); } catch { captureOn=false; return; }
-    setTimeout(()=>{ if(rec.state==='recording') rec.stop(); },4000);
-  }
-  startChunk();
+    } catch {}
+  };
+  themSSE.onerror = () => {
+    document.getElementById('sysAudioStatus').textContent = '🎧 reconnecting…';
+  };
+}
+
+function stopThemSSE() {
+  if (themSSE) { themSSE.close(); themSSE = null; }
 }
 
 // ── Bubbles ────────────────────────────────────────────────────────────
