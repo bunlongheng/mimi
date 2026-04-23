@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.mimi.menubar</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/hengb01/Sites/mimi/MimiBar</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Users/hengb01/Sites/mimi/mimi.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/hengb01/Sites/mimi/mimi.log</string>
+</dict>
+</plist>
