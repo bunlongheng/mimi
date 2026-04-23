@@ -42,7 +42,13 @@ header {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
-.brand { font-size:15px; font-weight:700; letter-spacing:-0.02em; color:var(--text); display:flex; align-items:center; gap:6px; }
+.brand {
+  font-size:15px; font-weight:800; letter-spacing:-0.03em;
+  display:flex; align-items:center; gap:6px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 40%, #ec4899 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 .sep   { width:1px; height:14px; background:var(--border); }
 
 .rec-wrap { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); font-family:'SF Mono',monospace; }
