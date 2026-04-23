@@ -284,7 +284,7 @@ button:disabled { opacity:.3; cursor:not-allowed; }
   <div class="empty-state" id="emptyState" onclick="startEverything()">
     <div class="mic-wrap">🎙</div>
     <div class="idle-title">Tap to start</div>
-    <div class="idle-sub">Mic only &nbsp;·&nbsp; <span style="text-decoration:underline;cursor:pointer" onclick="event.stopPropagation();startMicOnly()">skip system audio</span></div>
+    <div class="idle-sub">Mic transcription — system audio optional</div>
   </div>
 
   <!-- Chat -->
@@ -303,7 +303,10 @@ button:disabled { opacity:.3; cursor:not-allowed; }
 <div class="live-bar">
   <div class="live-inner">
     <div class="live-text" id="youLive"></div>
-    <button id="btnStop" onclick="stopEverything()">Stop</button>
+    <div style="display:flex;gap:8px">
+      <button id="btnSysAudio" style="display:none;flex:1;border-color:rgba(34,197,94,.4);color:#16a34a" onclick="startCaptureAuto()">+ System Audio</button>
+      <button id="btnStop" style="flex:1" onclick="stopEverything()">Stop</button>
+    </div>
   </div>
 </div>
 
@@ -414,36 +417,21 @@ async function startEverything() {
   document.getElementById('recDot').className='dot live';
   document.getElementById('recLabel').textContent='live';
   updateSession(true);
-
-  // Step 3: screen picker appears after mic is settled (one at a time)
-  startCaptureAuto();
+  // Show system audio button — user taps it when ready (no auto-popup)
+  document.getElementById('btnSysAudio').style.display='block';
+  document.getElementById('btnSysAudio').textContent='+ System Audio';
 }
 
-// mic-only mode — no getDisplayMedia at all
-async function startMicOnly() {
-  if (isRecording) return;
-  try { const s=await navigator.mediaDevices.getUserMedia({audio:true}); s.getTracks().forEach(t=>t.stop()); } catch { showToast('Mic blocked',3000); return; }
-  const r=buildRec('you'); if (!r) return;
-  ch.you.r=r; ch.you.on=true; r.start();
-  isRecording=true;
-  document.getElementById('emptyState').style.display='none';
-  document.getElementById('btnStop').style.display='block';
-  startMs=Date.now();
-  timerTick=setInterval(()=>{ const e=Date.now()-startMs; document.getElementById('timer').textContent=`${Math.floor(e/3600000).toString().padStart(2,'0')}:${Math.floor((e%3600000)/60000).toString().padStart(2,'0')}:${Math.floor((e%60000)/1000).toString().padStart(2,'0')}`; },500);
-  document.getElementById('recDot').className='dot live';
-  document.getElementById('recLabel').textContent='live';
-  updateSession(true);
-}
 
 function stopEverything() {
   ch.you.on=false; ch.you.r?.stop(); ch.you.r=null;
   if (captureRecorder?.state==='recording') captureRecorder.stop();
   captureRecorder=null; captureOn=false;
-  // keep captureStream alive — don't stop tracks or null the stream
-  // so restarting reuses the same share without repicking
+  // keep captureStream alive — reuse on restart, no repicking
   renderLive('youLive','','you');
   isRecording=false; startMs=null;
   document.getElementById('btnStop').style.display='none';
+  document.getElementById('btnSysAudio').style.display='none';
   document.getElementById('timer').textContent='00:00:00';
   if (document.getElementById('chat').children.length===0) {
     document.getElementById('emptyState').style.display='flex';
@@ -484,6 +472,8 @@ function buildRec(side) {
 // ── System audio (auto-triggered with start) ───────────────────────────
 async function startCaptureAuto() {
   if (captureRequesting || captureOn) return;
+  document.getElementById('btnSysAudio').textContent='Waiting for share…';
+  document.getElementById('btnSysAudio').disabled=true;
   captureRequesting=true;
 
   // Reuse existing stream if audio track is still live — no picker needed
@@ -502,18 +492,24 @@ async function startCaptureAuto() {
       setCheck('screen',true);
     } catch {
       captureRequesting=false;
+      document.getElementById('btnSysAudio').textContent='+ System Audio';
       return;
     }
     captureStream.getVideoTracks().forEach(t=>t.stop());
+    localStorage.setItem('mimiScreenGranted','1');
   }
   captureRequesting=false;
+  document.getElementById('btnSysAudio').disabled=false;
 
   const audioTrack=captureStream.getAudioTracks()[0];
   if (!audioTrack) {
-    showToast('Tick "Share tab audio" when picking the tab',4000);
+    showToast('Select a tab and tick "Also share tab audio"',4000);
     captureStream=null;
+    document.getElementById('btnSysAudio').textContent='+ System Audio';
     return;
   }
+  // hide button — system audio is now active
+  document.getElementById('btnSysAudio').style.display='none';
 
   captureOn=true;
   const audioStream=new MediaStream([audioTrack]);
@@ -521,7 +517,11 @@ async function startCaptureAuto() {
   // When user clicks "Stop sharing" in Chrome's bar, clean up gracefully
   audioTrack.onended=()=>{
     captureOn=false; captureStream=null; captureRecorder=null;
-    if (isRecording) showToast('System audio ended — mic still active',3000);
+    if (isRecording) {
+      showToast('System audio ended — mic still active',3000);
+      document.getElementById('btnSysAudio').style.display='block';
+      document.getElementById('btnSysAudio').textContent='+ System Audio';
+    }
   };
 
   function startChunk() {
