@@ -109,7 +109,7 @@ button:disabled { opacity:.3; cursor:not-allowed; }
 }
 
 .bubble {
-  padding:9px 13px; border-radius:18px;
+  max-width:72%; padding:9px 13px; border-radius:18px;
   font-size:15px; line-height:1.45; word-break:break-word;
 }
 .row.you  .bubble { background:var(--you); color:#fff; border-bottom-right-radius:5px; }
@@ -120,15 +120,6 @@ button:disabled { opacity:.3; cursor:not-allowed; }
 .ts { display:block; font-size:10px; font-family:'SF Mono',monospace; opacity:.45; margin-top:3px; }
 .row.you  .ts { text-align:right; }
 .row.them .ts { text-align:left; }
-.channel-label { font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; opacity:.5; margin-bottom:2px; }
-.row.you  .channel-label { text-align:right; color:var(--you); }
-.row.them .channel-label { text-align:left;  color:#0891b2; }
-
-/* ── Chat actions (below bubbles) ── */
-.chat-actions { display:flex; gap:8px; padding-top:4px; justify-content:flex-end; }
-.btn-save { border-color:var(--border); }
-.btn-sum  { border-color:rgba(124,58,237,.35); color:var(--purple); }
-.btn-sum:hover:not(:disabled) { background:rgba(124,58,237,.06); border-color:var(--purple); }
 
 /* ── Bottom live bar ── */
 .live-bar {
@@ -235,6 +226,8 @@ button:disabled { opacity:.3; cursor:not-allowed; }
   </div>
   <span class="timer" id="timer">00:00:00</span>
   <div class="hdr-right">
+    <button id="btnSave" title="Save transcript" onclick="saveRaw()" style="display:none;padding:5px 8px;font-size:14px">↓</button>
+    <button id="btnSum"  title="AI Summary"      onclick="openSummary()" style="display:none;padding:5px 8px;font-size:15px;color:var(--purple);border-color:rgba(124,58,237,.35)">✦</button>
     <button class="btn-gear" title="Settings" onclick="openSettings()">⚙</button>
   </div>
 </header>
@@ -293,11 +286,6 @@ button:disabled { opacity:.3; cursor:not-allowed; }
   <!-- Chat -->
   <div class="chat" id="chat"></div>
 
-  <!-- Actions below chat -->
-  <div class="chat-actions" id="chatActions" style="display:none">
-    <button class="btn-save" id="btnSave" onclick="saveRaw()">Save Raw</button>
-    <button class="btn-sum"  id="btnSum"  onclick="openSummary()">Summarize with AI</button>
-  </div>
 
 </div>
 </div>
@@ -499,7 +487,6 @@ async function startCaptureAuto() {
       document.getElementById('btnSysAudio').textContent='+ System Audio';
       return;
     }
-    captureStream.getVideoTracks().forEach(t=>t.stop());
     localStorage.setItem('mimiScreenGranted','1');
   }
   captureRequesting=false;
@@ -507,16 +494,16 @@ async function startCaptureAuto() {
 
   const audioTrack=captureStream.getAudioTracks()[0];
   if (!audioTrack) {
-    showToast('Select a tab and tick "Also share tab audio"',4000);
+    showToast('Select a tab → tick "Also share tab audio" → Share',5000);
     captureStream=null;
     document.getElementById('btnSysAudio').textContent='+ System Audio';
     return;
   }
   // hide button — system audio is now active
   document.getElementById('btnSysAudio').style.display='none';
-  console.log('[mimi] audio track:', audioTrack.label, 'state:', audioTrack.readyState);
 
   captureOn=true;
+  // use captureStream directly — don't stop video or rewrap, keeps track alive
   const audioStream=new MediaStream([audioTrack]);
 
   // When user clicks "Stop sharing" in Chrome's bar, clean up gracefully
@@ -570,12 +557,12 @@ function addBubble(side,text) {
   const chat=document.getElementById('chat');
   const row=document.createElement('div');
   row.className=`row ${side}`;
-  const label = side==='you' ? 'You · Mic' : 'System Audio';
-  row.innerHTML=`<div style="display:flex;flex-direction:column;max-width:72%"><div class="channel-label">${label}</div><div class="bubble">${escHtml(text.trim())}<span class="ts">${stamp}</span></div></div>`;
+  row.innerHTML=`<div class="bubble">${escHtml(text.trim())}<span class="ts">${stamp}</span></div>`;
   chat.appendChild(row);
   document.getElementById('scrollArea').scrollTop=99999;
   ch[side].lines.push({stamp,side,text:text.trim()});
-  document.getElementById('chatActions').style.display='flex';
+  document.getElementById('btnSave').style.display='inline-flex';
+  document.getElementById('btnSum').style.display='inline-flex';
 }
 
 // ── Session state ──────────────────────────────────────────────────────
