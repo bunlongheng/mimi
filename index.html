@@ -226,7 +226,8 @@ button:disabled { opacity:.3; cursor:not-allowed; }
   </div>
   <span class="timer" id="timer">00:00:00</span>
   <div class="hdr-right">
-    <button id="btnSave" title="Save transcript" onclick="saveRaw()" style="display:none;padding:5px 8px;font-size:14px">↓</button>
+    <button id="btnCopy" title="Copy transcript" onclick="copyRaw()" style="display:none;padding:5px 8px;font-size:13px">⎘</button>
+    <button id="btnSave" title="Download transcript" onclick="saveRaw()" style="display:none;padding:5px 8px;font-size:14px">↓</button>
     <button id="btnSum"  title="AI Summary"      onclick="openSummary()" style="display:none;padding:5px 8px;font-size:15px;color:var(--purple);border-color:rgba(124,58,237,.35)">✦</button>
     <button class="btn-gear" title="Settings" onclick="openSettings()">⚙</button>
   </div>
@@ -489,6 +490,7 @@ function addBubble(side,text) {
   chat.appendChild(row);
   document.getElementById('scrollArea').scrollTop=99999;
   ch[side].lines.push({stamp,side,text:text.trim()});
+  document.getElementById('btnCopy').style.display='inline-flex';
   document.getElementById('btnSave').style.display='inline-flex';
   document.getElementById('btnSum').style.display='inline-flex';
 }
@@ -518,6 +520,7 @@ async function openSummary() {
     const d=await r.json(); document.getElementById('sumBody').textContent=d.summary||d.error||'Empty.';
   } catch(e) { document.getElementById('sumBody').textContent=`Error: ${e.message}`; }
 }
+function copyRaw() { navigator.clipboard.writeText(buildRaw()); showToast('Transcript copied'); }
 function copyModal() { navigator.clipboard.writeText(document.getElementById('sumBody').textContent); showToast('Copied'); }
 async function saveSummary() {
   const text=document.getElementById('sumBody').textContent;
