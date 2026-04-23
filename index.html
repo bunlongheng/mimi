@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mimi 耳</title>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --you-bg: #2563eb;
+  --them-bg: #1c1c26;
+  --them-border: #2a2a3a;
+  --bg: #060608;
+  --surface: #0d0d12;
+  --border: #18181f;
+  --text: #f1f5f9;
+  --muted: #64748b;
+  --dim: #334155;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'SF Pro Text', 'Inter', sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.brand {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sep { width: 1px; height: 14px; background: var(--border); }
+
+.rec-wrap {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--muted);
+  font-family: 'SF Mono', monospace;
+}
+.dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--dim); transition: background 0.3s;
+}
+.dot.live { background: #ef4444; animation: blink 1.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+.timer {
+  font-size: 12px; font-family: 'SF Mono', monospace;
+  color: var(--muted); font-variant-numeric: tabular-nums;
+}
+
+.hdr-right { margin-left: auto; display: flex; gap: 7px; align-items: center; }
+
+button {
+  padding: 5px 13px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px; font-weight: 500;
+  cursor: pointer;
+  transition: all 0.14s;
+}
+button:hover:not(:disabled) { color: var(--text); border-color: #3f3f52; background: #111118; }
+button:disabled { opacity: 0.28; cursor: not-allowed; }
+
+.btn-sum { border-color: rgba(139,92,246,0.35); color: #a78bfa; }
+.btn-sum:hover:not(:disabled) { background: rgba(139,92,246,0.08); border-color: #7c3aed; }
+
+/* ── Chat ── */
+.chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 20px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chat::-webkit-scrollbar { width: 3px; }
+.chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.row {
+  display: flex;
+  animation: pop 0.2s cubic-bezier(0.34, 1.5, 0.64, 1);
+}
+.row.you  { justify-content: flex-end; }
+.row.them { justify-content: flex-start; }
+
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.9) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.bubble {
+  max-width: 68%;
+  padding: 9px 13px;
+  border-radius: 18px;
+  font-size: 15px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.row.you  .bubble {
+  background: var(--you-bg);
+  color: #fff;
+  border-bottom-right-radius: 5px;
+}
+.row.them .bubble {
+  background: var(--them-bg);
+  border: 1px solid var(--them-border);
+  color: #c4cfdf;
+  border-bottom-left-radius: 5px;
+}
+
+/* tighter corner for consecutive same-side bubbles */
+.row.you  + .row.you  .bubble { border-top-right-radius: 6px; }
+.row.them + .row.them .bubble { border-top-left-radius: 6px; }
+
+.ts {
+  display: block;
+  font-size: 10px;
+  font-family: 'SF Mono', monospace;
+  opacity: 0.45;
+  margin-top: 3px;
+}
+.row.you  .ts { text-align: right; }
+.row.them .ts { text-align: left; }
+
+/* ── Live typing bars ── */
+.live-bar {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+  padding: 10px 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.live-slots {
+  display: flex;
+  gap: 14px;
+}
+
+.live-slot { flex: 1; min-width: 0; }
+
+.live-who {
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.live-who.you  { color: #60a5fa; }
+.live-who.them { color: #34d399; }
+
+.live-text {
+  font-size: 13px; line-height: 1.4;
+  min-height: 18px; color: var(--muted);
+}
+
+/* karaoke highlight */
+.w { display: inline; }
+.kw-you {
+  color: #93c5fd;
+  background: rgba(59,130,246,0.2);
+  border-radius: 3px; padding: 0 2px;
+  animation: pulse 0.75s ease-in-out infinite;
+}
+.kw-them {
+  color: #6ee7b7;
+  background: rgba(52,211,153,0.15);
+  border-radius: 3px; padding: 0 2px;
+  animation: pulse 0.75s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── Main action buttons ── */
+.action-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+#btnStart {
+  flex: 1;
+  padding: 9px 0;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 10px;
+  border-color: rgba(59,130,246,0.5);
+  color: #60a5fa;
+  letter-spacing: 0.01em;
+}
+#btnStart:hover { background: rgba(59,130,246,0.1); border-color: #3b82f6; }
+#btnStart.recording {
+  border-color: rgba(239,68,68,0.5);
+  color: #f87171;
+}
+#btnStart.recording:hover { background: rgba(239,68,68,0.08); border-color: #ef4444; }
+
+#btnCapture {
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 10px;
+  border-color: rgba(52,211,153,0.4);
+  color: #34d399;
+  white-space: nowrap;
+}
+#btnCapture:hover:not(:disabled) { background: rgba(52,211,153,0.08); border-color: #34d399; }
+#btnCapture.capturing { border-color: rgba(239,68,68,0.5); color: #f87171; }
+#btnCapture.capturing:hover { background: rgba(239,68,68,0.08); border-color: #ef4444; }
+#btnCapture:disabled { opacity: 0.3; }
+
+/* ── Modal ── */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.78);
+  z-index: 50; align-items: center; justify-content: center;
+  backdrop-filter: blur(6px);
+}
+.overlay.open { display: flex; }
+
+.modal {
+  background: #0f0f16; border: 1px solid #22222e;
+  border-radius: 16px; padding: 24px;
+  max-width: 580px; width: 92%; max-height: 80vh;
+  overflow-y: auto;
+  animation: mIn 0.18s ease-out;
+}
+@keyframes mIn {
+  from { opacity:0; transform: scale(0.95) translateY(10px); }
+  to   { opacity:1; transform: scale(1) translateY(0); }
+}
+.modal-title { font-size: 14px; font-weight: 700; margin-bottom: 16px; }
+.modal-body  { font-size: 13px; line-height: 1.8; color: #94a3b8; white-space: pre-wrap; }
+.modal-footer { margin-top: 18px; display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 88px; left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: #1a1a24; border: 1px solid #2a2a38;
+  border-radius: 8px; padding: 7px 14px;
+  font-size: 12px; color: #94a3b8;
+  opacity: 0; transition: all 0.2s;
+  pointer-events: none; white-space: nowrap; z-index: 40;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><span>耳</span> Mimi</div>
+  <div class="sep"></div>
+  <div class="rec-wrap">
+    <div class="dot" id="recDot"></div>
+    <span id="recLabel">idle</span>
+  </div>
+  <span class="timer" id="timer">00:00:00</span>
+  <div class="hdr-right">
+    <button id="btnSave" disabled onclick="saveRaw()">Save</button>
+    <button class="btn-sum" id="btnSum" disabled onclick="openSummary()">Summarize</button>
+  </div>
+</header>
+
+<div class="chat" id="chat"></div>
+
+<div class="live-bar">
+  <div class="live-slots">
+    <div class="live-slot">
+      <div class="live-who you">You</div>
+      <div class="live-text" id="youLive"></div>
+    </div>
+    <div class="live-slot">
+      <div class="live-who them">Them</div>
+      <div class="live-text" id="themLive"></div>
+    </div>
+  </div>
+  <div class="action-row">
+    <button id="btnStart" onclick="toggleAll()">Start Listening</button>
+    <button id="btnCapture" onclick="toggleCapture()" title="Capture system audio (YouTube, Slack, Teams)">Capture System Audio</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-title">耳 Meeting Summary</div>
+    <div class="modal-body" id="modalBody">Generating…</div>
+    <div class="modal-footer">
+      <button onclick="copyModal()">Copy</button>
+      <button onclick="saveModal()">Save</button>
+      <button onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ch = {
+  you:  { r: null, on: false, lines: [] },
+  them: { r: null, on: false, lines: [] },
+};
+let startMs = null, timerTick = null, isRecording = false;
+
+// ── Helpers ────────────────────────────────────────────────────────────
+function elapsed() {
+  if (!startMs) return '0:00';
+  const s = Math.floor((Date.now() - startMs) / 1000);
+  return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+}
+
+function showToast(msg, ms = 2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), ms);
+}
+
+// safe download — appends to body so it doesn't steal focus from SpeechRecognition
+function triggerDownload(text, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 300);
+}
+
+// ── Karaoke renderer ───────────────────────────────────────────────────
+function renderLive(id, text, side) {
+  const el = document.getElementById(id);
+  if (!text) { el.innerHTML = ''; return; }
+  const words = text.trim().split(/\s+/);
+  el.innerHTML = words.map((w, i) =>
+    `<span class="w ${i === words.length - 1 ? 'kw-' + side : ''}">${w} </span>`
+  ).join('');
+}
+
+// ── Add bubble ─────────────────────────────────────────────────────────
+function addBubble(side, text) {
+  if (!text.trim()) return;
+  const stamp = elapsed();
+  const chat = document.getElementById('chat');
+  const row = document.createElement('div');
+  row.className = `row ${side}`;
+  row.innerHTML = `<div class="bubble">${text.trim()}<span class="ts">${stamp}</span></div>`;
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+  ch[side].lines.push({ stamp, side, text: text.trim() });
+  document.getElementById('btnSave').disabled = false;
+  document.getElementById('btnSum').disabled = false;
+}
+
+// ── Build recognition for one channel ──────────────────────────────────
+function buildRec(side) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert('Use Chrome or Safari — Web Speech API required.'); return null; }
+
+  const r = new SR();
+  r.continuous = true;
+  r.interimResults = true;
+  r.lang = 'en-US';
+
+  r.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      e.results[i].isFinal ? (final += t) : (interim += t);
+    }
+    if (final)   { addBubble(side, final); renderLive(`${side}Live`, '', side); }
+    if (interim) { renderLive(`${side}Live`, interim, side); }
+  };
+
+  r.onerror = () => {};
+
+  r.onend = () => {
+    if (ch[side].on) setTimeout(() => { if (ch[side].on) r.start(); }, 80);
+  };
+
+  return r;
+}
+
+// ── Toggle all — ONE recognition instance on mic ───────────────────────
+// THEM channel needs BlackHole as system input to get a separate stream.
+// Until then, one mic = one instance. All mic output → YOU bubbles.
+function toggleAll() {
+  const btn = document.getElementById('btnStart');
+
+  if (isRecording) {
+    ch.you.on = false;
+    ch.you.r?.stop();
+    ch.you.r = null;
+    renderLive('youLive', '', 'you');
+    renderLive('themLive', '', 'them');
+    isRecording = false;
+    btn.textContent = 'Start Listening';
+    btn.classList.remove('recording');
+    clearInterval(timerTick); timerTick = null;
+    document.getElementById('recDot').className = 'dot';
+    document.getElementById('recLabel').textContent = 'idle';
+  } else {
+    const r = buildRec('you');
+    if (!r) return;
+    ch.you.r = r;
+    ch.you.on = true;
+    r.start();
+    isRecording = true;
+    btn.textContent = 'Stop';
+    btn.classList.add('recording');
+    if (!startMs) {
+      startMs = Date.now();
+      timerTick = setInterval(() => {
+        const e = Date.now() - startMs;
+        const hh = Math.floor(e/3600000).toString().padStart(2,'0');
+        const mm = Math.floor((e%3600000)/60000).toString().padStart(2,'0');
+        const ss = Math.floor((e%60000)/1000).toString().padStart(2,'0');
+        document.getElementById('timer').textContent = `${hh}:${mm}:${ss}`;
+      }, 500);
+    }
+    document.getElementById('recDot').className = 'dot live';
+    document.getElementById('recLabel').textContent = 'live';
+  }
+}
+
+// ── Build raw transcript ───────────────────────────────────────────────
+function buildRaw() {
+  const all = [
+    ...ch.you.lines.map(l => ({ ...l, who: 'YOU ' })),
+    ...ch.them.lines.map(l => ({ ...l, who: 'THEM' })),
+  ].sort((a, b) => a.stamp.localeCompare(b.stamp));
+  return all.map(l => `[${l.stamp}] ${l.who}: ${l.text}`).join('\n');
+}
+
+// ── Save raw ───────────────────────────────────────────────────────────
+async function saveRaw() {
+  const text = buildRaw();
+  const filename = `mimi-${new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')}.txt`;
+  try {
+    const r = await fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: text, filename }),
+    });
+    const d = await r.json();
+    showToast(d.saved ? 'Saved to Desktop' : `Error: ${d.error}`);
+  } catch {
+    triggerDownload(text, filename);
+    showToast('Downloaded');
+  }
+}
+
+// ── Summary ────────────────────────────────────────────────────────────
+async function openSummary() {
+  document.getElementById('modalBody').textContent = 'Generating…';
+  document.getElementById('overlay').classList.add('open');
+  try {
+    const r = await fetch('/api/summary', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: buildRaw() }),
+    });
+    const d = await r.json();
+    document.getElementById('modalBody').textContent =
+      d.summary || d.error || 'Empty response.';
+  } catch (e) {
+    document.getElementById('modalBody').textContent =
+      `Error: ${e.message}\n\nAdd ANTHROPIC_API_KEY to ~/Sites/mimi/.env.local and restart the server.`;
+  }
+}
+
+function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+
+function copyModal() {
+  navigator.clipboard.writeText(document.getElementById('modalBody').textContent);
+  showToast('Copied');
+}
+
+async function saveModal() {
+  const text = document.getElementById('modalBody').textContent;
+  const filename = `mimi-summary-${new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')}.txt`;
+  try {
+    const r = await fetch('/api/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript: text, filename }),
+    });
+    const d = await r.json();
+    showToast(d.saved ? 'Summary saved to Desktop' : `Error: ${d.error}`);
+  } catch {
+    triggerDownload(text, filename);
+    showToast('Downloaded');
+  }
+}
+
+document.getElementById('overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ── System audio capture via getDisplayMedia ───────────────────────────
+let captureStream = null, captureRecorder = null, captureOn = false;
+
+async function toggleCapture() {
+  const btn = document.getElementById('btnCapture');
+
+  if (captureOn) {
+    captureRecorder?.stop();
+    captureStream?.getTracks().forEach(t => t.stop());
+    captureStream = null; captureRecorder = null; captureOn = false;
+    btn.textContent = 'Capture System Audio';
+    btn.classList.remove('capturing');
+    renderLive('themLive', '', 'them');
+    return;
+  }
+
+  // Check model is ready
+  try {
+    const s = await fetch('/api/model-status');
+    const d = await s.json();
+    if (!d.ready) {
+      showToast('Model still downloading, wait a moment…', 3000);
+      return;
+    }
+  } catch { showToast('Server not responding'); return; }
+
+  try {
+    // Prompt user to share screen/tab — check "Share tab audio" when prompted
+    captureStream = await navigator.mediaDevices.getDisplayMedia({
+      video: true,   // must be true for macOS to allow audio
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        sampleRate: 16000,
+      },
+    });
+  } catch (e) {
+    showToast('Screen capture cancelled or denied');
+    return;
+  }
+
+  // Only keep audio track
+  captureStream.getVideoTracks().forEach(t => t.stop());
+
+  const audioTrack = captureStream.getAudioTracks()[0];
+  if (!audioTrack) {
+    showToast('No audio track — tick "Share tab audio" when selecting the tab');
+    return;
+  }
+
+  captureOn = true;
+  btn.textContent = 'Stop Capture';
+  btn.classList.add('capturing');
+
+  const audioStream = new MediaStream([audioTrack]);
+
+  // Record in 4-second chunks → send to backend → whisper transcribes
+  function startChunk() {
+    if (!captureOn) return;
+    const rec = new MediaRecorder(audioStream, { mimeType: 'audio/webm;codecs=opus' });
+    const chunks = [];
+
+    rec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+    rec.onstop = async () => {
+      if (!captureOn) return;
+      const blob = new Blob(chunks, { type: 'audio/webm' });
+      if (blob.size < 1000) { startChunk(); return; }
+
+      renderLive('themLive', '…', 'them');
+      try {
+        const buf = await blob.arrayBuffer();
+        const r = await fetch('/api/transcribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'audio/webm' },
+          body: buf,
+        });
+        const d = await r.json();
+        if (d.text && d.text.trim()) {
+          addBubble('them', d.text.trim());
+          renderLive('themLive', '', 'them');
+        } else {
+          renderLive('themLive', '', 'them');
+        }
+      } catch { renderLive('themLive', '', 'them'); }
+
+      startChunk(); // immediately start next chunk
+    };
+
+    captureRecorder = rec;
+    rec.start();
+    setTimeout(() => { if (rec.state === 'recording') rec.stop(); }, 4000);
+  }
+
+  startChunk();
+}
+</script>
+</body>
+</html>
