@@ -284,7 +284,7 @@ button:disabled { opacity:.3; cursor:not-allowed; }
   <div class="empty-state" id="emptyState" onclick="startEverything()">
     <div class="mic-wrap">🎙</div>
     <div class="idle-title">Tap to start</div>
-    <div class="idle-sub">Captures mic + system audio</div>
+    <div class="idle-sub">Mic only &nbsp;·&nbsp; <span style="text-decoration:underline;cursor:pointer" onclick="event.stopPropagation();startMicOnly()">skip system audio</span></div>
   </div>
 
   <!-- Chat -->
@@ -417,6 +417,22 @@ async function startEverything() {
 
   // Step 3: screen picker appears after mic is settled (one at a time)
   startCaptureAuto();
+}
+
+// mic-only mode — no getDisplayMedia at all
+async function startMicOnly() {
+  if (isRecording) return;
+  try { const s=await navigator.mediaDevices.getUserMedia({audio:true}); s.getTracks().forEach(t=>t.stop()); } catch { showToast('Mic blocked',3000); return; }
+  const r=buildRec('you'); if (!r) return;
+  ch.you.r=r; ch.you.on=true; r.start();
+  isRecording=true;
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('btnStop').style.display='block';
+  startMs=Date.now();
+  timerTick=setInterval(()=>{ const e=Date.now()-startMs; document.getElementById('timer').textContent=`${Math.floor(e/3600000).toString().padStart(2,'0')}:${Math.floor((e%3600000)/60000).toString().padStart(2,'0')}:${Math.floor((e%60000)/1000).toString().padStart(2,'0')}`; },500);
+  document.getElementById('recDot').className='dot live';
+  document.getElementById('recLabel').textContent='live';
+  updateSession(true);
 }
 
 function stopEverything() {
