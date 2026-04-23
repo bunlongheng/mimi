@@ -350,7 +350,7 @@ button:disabled { opacity:.3; cursor:not-allowed; }
 <script>
 const ch = { you:{r:null,on:false,lines:[]}, them:{r:null,on:false,lines:[]} };
 let startMs=null, timerTick=null, isRecording=false;
-let captureStream=null, captureRecorder=null, captureOn=false;
+let captureStream=null, captureRecorder=null, captureOn=false, captureRequesting=false;
 
 // ── Utils ──────────────────────────────────────────────────────────────
 function elapsed() {
@@ -369,6 +369,9 @@ function triggerDownload(text,filename) {
   a.download=filename; a.style.display='none';
   document.body.appendChild(a); a.click();
   setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(a.href); },300);
+}
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function renderLive(id,text,side) {
   const el=document.getElementById('youLive');
@@ -401,12 +404,13 @@ function startEverything() {
 
 function stopEverything() {
   ch.you.on=false; ch.you.r?.stop(); ch.you.r=null;
-  captureRecorder?.stop();
+  if (captureRecorder?.state==='recording') captureRecorder.stop();
   captureStream?.getTracks().forEach(t=>t.stop());
-  captureStream=null; captureRecorder=null; captureOn=false;
+  captureStream=null; captureRecorder=null; captureOn=false; captureRequesting=false;
   renderLive('youLive','','you');
-  isRecording=false;
+  isRecording=false; startMs=null;
   document.getElementById('btnStop').style.display='none';
+  document.getElementById('timer').textContent='00:00:00';
   if (document.getElementById('chat').children.length===0) {
     document.getElementById('emptyState').style.display='flex';
   }
@@ -430,17 +434,28 @@ function buildRec(side) {
     if (final)   { addBubble(side,final); renderLive(null,'',side); }
     if (interim) { renderLive(null,interim,side); }
   };
-  r.onerror=()=>{};
-  r.onend=()=>{ if(ch[side].on) setTimeout(()=>{ if(ch[side].on) r.start(); },80); };
+  r.onerror=e=>{
+    if (e.error==='not-allowed'||e.error==='service-not-allowed') {
+      ch[side].on=false;
+      showToast('Mic blocked — allow it in Chrome → Settings → Privacy',4000);
+    }
+  };
+  r.onend=()=>{
+    if (!ch[side].on) return;
+    setTimeout(()=>{ if (ch[side].on) { try { r.start(); } catch {} } },300);
+  };
   return r;
 }
 
 // ── System audio (auto-triggered with start) ───────────────────────────
 async function startCaptureAuto() {
+  if (captureRequesting || captureOn) return; // already running or requesting
+  captureRequesting=true;
+
   try {
     const s=await fetch('/api/model-status'); const d=await s.json();
-    if (!d.ready) return; // model not ready — skip silently
-  } catch { return; }
+    if (!d.ready) { captureRequesting=false; return; }
+  } catch { captureRequesting=false; return; }
 
   try {
     captureStream=await navigator.mediaDevices.getDisplayMedia({
@@ -448,18 +463,35 @@ async function startCaptureAuto() {
       audio:{ echoCancellation:false, noiseSuppression:false }
     });
     setCheck('screen',true);
-  } catch { return; } // user cancelled — just skip, mic still works
+  } catch {
+    captureRequesting=false;
+    return; // user cancelled — mic still works, no loop
+  }
+  captureRequesting=false;
 
   captureStream.getVideoTracks().forEach(t=>t.stop());
   const audioTrack=captureStream.getAudioTracks()[0];
-  if (!audioTrack) { showToast('Tick "Share tab audio" next time for system audio',4000); return; }
+  if (!audioTrack) {
+    showToast('Tick "Share tab audio" when picking the tab',4000);
+    captureStream=null;
+    return;
+  }
 
   captureOn=true;
   const audioStream=new MediaStream([audioTrack]);
 
+  // When user clicks "Stop sharing" in Chrome's bar, clean up gracefully
+  audioTrack.onended=()=>{
+    captureOn=false;
+    captureStream=null; captureRecorder=null;
+    if (isRecording) showToast('System audio ended — mic still active',3000);
+  };
+
   function startChunk() {
-    if (!captureOn) return;
-    const rec=new MediaRecorder(audioStream,{mimeType:'audio/webm;codecs=opus'});
+    if (!captureOn || audioTrack.readyState==='ended') return;
+    const mimeType=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus' : 'audio/webm';
+    const rec=new MediaRecorder(audioStream,{mimeType});
     const chunks=[];
     rec.ondataavailable=e=>{ if(e.data.size>0) chunks.push(e.data); };
     rec.onstop=async()=>{
@@ -475,7 +507,7 @@ async function startCaptureAuto() {
       } catch { renderLive(null,'','them'); }
       startChunk();
     };
-    captureRecorder=rec; rec.start();
+    try { captureRecorder=rec; rec.start(); } catch { captureOn=false; return; }
     setTimeout(()=>{ if(rec.state==='recording') rec.stop(); },4000);
   }
   startChunk();
@@ -488,7 +520,7 @@ function addBubble(side,text) {
   const chat=document.getElementById('chat');
   const row=document.createElement('div');
   row.className=`row ${side}`;
-  row.innerHTML=`<div class="bubble">${text.trim()}<span class="ts">${stamp}</span></div>`;
+  row.innerHTML=`<div class="bubble">${escHtml(text.trim())}<span class="ts">${stamp}</span></div>`;
   chat.appendChild(row);
   document.getElementById('scrollArea').scrollTop=99999;
   ch[side].lines.push({stamp,side,text:text.trim()});
