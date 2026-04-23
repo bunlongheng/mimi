@@ -422,8 +422,9 @@ async function startEverything() {
 function stopEverything() {
   ch.you.on=false; ch.you.r?.stop(); ch.you.r=null;
   if (captureRecorder?.state==='recording') captureRecorder.stop();
-  captureStream?.getTracks().forEach(t=>t.stop());
-  captureStream=null; captureRecorder=null; captureOn=false; captureRequesting=false;
+  captureRecorder=null; captureOn=false;
+  // keep captureStream alive — don't stop tracks or null the stream
+  // so restarting reuses the same share without repicking
   renderLive('youLive','','you');
   isRecording=false; startMs=null;
   document.getElementById('btnStop').style.display='none';
@@ -466,27 +467,31 @@ function buildRec(side) {
 
 // ── System audio (auto-triggered with start) ───────────────────────────
 async function startCaptureAuto() {
-  if (captureRequesting || captureOn) return; // already running or requesting
+  if (captureRequesting || captureOn) return;
   captureRequesting=true;
 
-  try {
-    const s=await fetch('/api/model-status'); const d=await s.json();
-    if (!d.ready) { captureRequesting=false; return; }
-  } catch { captureRequesting=false; return; }
+  // Reuse existing stream if audio track is still live — no picker needed
+  const existingAudio = captureStream?.getAudioTracks().find(t=>t.readyState==='live');
+  if (!existingAudio) {
+    try {
+      const s=await fetch('/api/model-status'); const d=await s.json();
+      if (!d.ready) { captureRequesting=false; return; }
+    } catch { captureRequesting=false; return; }
 
-  try {
-    captureStream=await navigator.mediaDevices.getDisplayMedia({
-      video:true,
-      audio:{ echoCancellation:false, noiseSuppression:false }
-    });
-    setCheck('screen',true);
-  } catch {
-    captureRequesting=false;
-    return; // user cancelled — mic still works, no loop
+    try {
+      captureStream=await navigator.mediaDevices.getDisplayMedia({
+        video:true,
+        audio:{ echoCancellation:false, noiseSuppression:false }
+      });
+      setCheck('screen',true);
+    } catch {
+      captureRequesting=false;
+      return;
+    }
+    captureStream.getVideoTracks().forEach(t=>t.stop());
   }
   captureRequesting=false;
 
-  captureStream.getVideoTracks().forEach(t=>t.stop());
   const audioTrack=captureStream.getAudioTracks()[0];
   if (!audioTrack) {
     showToast('Tick "Share tab audio" when picking the tab',4000);
@@ -499,8 +504,7 @@ async function startCaptureAuto() {
 
   // When user clicks "Stop sharing" in Chrome's bar, clean up gracefully
   audioTrack.onended=()=>{
-    captureOn=false;
-    captureStream=null; captureRecorder=null;
+    captureOn=false; captureStream=null; captureRecorder=null;
     if (isRecording) showToast('System audio ended — mic still active',3000);
   };
 
