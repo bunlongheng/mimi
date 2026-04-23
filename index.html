@@ -5,18 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mimi 耳</title>
 <style>
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
 :root {
-  --you-bg: #2563eb;
-  --them-bg: #1c1c26;
-  --them-border: #2a2a3a;
-  --bg: #060608;
-  --surface: #0d0d12;
-  --border: #18181f;
-  --text: #f1f5f9;
-  --muted: #64748b;
-  --dim: #334155;
+  --you:        #3b82f6;
+  --them:       #1c1c28;
+  --them-b:     #2a2a3a;
+  --green:      #22c55e;
+  --bg:         #07070a;
+  --surface:    #0e0e14;
+  --card:       #111118;
+  --border:     #1c1c26;
+  --text:       #f1f5f9;
+  --muted:      #64748b;
+  --dim:        #334155;
+  --purple:     #a78bfa;
 }
 
 body {
@@ -33,242 +36,292 @@ body {
 header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
+  gap: 12px;
+  padding: 10px 20px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
-.brand {
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+.brand { font-size:15px; font-weight:700; letter-spacing:-0.02em; display:flex; align-items:center; gap:6px; }
+.sep   { width:1px; height:14px; background:var(--border); }
 
-.sep { width: 1px; height: 14px; background: var(--border); }
-
-.rec-wrap {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 11px; color: var(--muted);
-  font-family: 'SF Mono', monospace;
-}
-.dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--dim); transition: background 0.3s;
-}
-.dot.live { background: #ef4444; animation: blink 1.4s ease-in-out infinite; }
+.rec-wrap { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); font-family:'SF Mono',monospace; }
+.dot      { width:6px; height:6px; border-radius:50%; background:var(--dim); transition:background .3s; }
+.dot.live { background:#ef4444; animation:blink 1.4s ease-in-out infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
-.timer {
-  font-size: 12px; font-family: 'SF Mono', monospace;
-  color: var(--muted); font-variant-numeric: tabular-nums;
-}
-
-.hdr-right { margin-left: auto; display: flex; gap: 7px; align-items: center; }
+.timer { font-size:12px; font-family:'SF Mono',monospace; color:var(--muted); font-variant-numeric:tabular-nums; }
+.hdr-right { margin-left:auto; display:flex; gap:8px; align-items:center; }
 
 button {
-  padding: 5px 13px;
-  border-radius: 7px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--muted);
-  font-size: 12px; font-weight: 500;
-  cursor: pointer;
-  transition: all 0.14s;
+  padding:5px 13px; border-radius:7px;
+  border:1px solid var(--border); background:transparent;
+  color:var(--muted); font-size:12px; font-weight:500;
+  cursor:pointer; transition:all .14s;
 }
-button:hover:not(:disabled) { color: var(--text); border-color: #3f3f52; background: #111118; }
-button:disabled { opacity: 0.28; cursor: not-allowed; }
+button:hover:not(:disabled) { color:var(--text); border-color:#3f3f52; background:#111118; }
+button:disabled { opacity:.28; cursor:not-allowed; }
 
-.btn-sum { border-color: rgba(139,92,246,0.35); color: #a78bfa; }
-.btn-sum:hover:not(:disabled) { background: rgba(139,92,246,0.08); border-color: #7c3aed; }
+.btn-gear { padding:5px 8px; font-size:15px; }
+.btn-gear:hover { color:var(--text); }
+
+/* ── Scroll wrapper ── */
+.scroll-area {
+  flex:1;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:20px 16px 12px;
+  gap:16px;
+}
+.scroll-area::-webkit-scrollbar { width:3px; }
+.scroll-area::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+.container { width:100%; max-width:700px; display:flex; flex-direction:column; gap:14px; }
+
+/* ── Pre-flight card ── */
+.preflight {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all .3s;
+}
+
+.preflight-head {
+  display:flex; align-items:center; gap:10px;
+  padding: 12px 16px;
+  cursor:pointer;
+  user-select:none;
+}
+.preflight-head:hover { background: rgba(255,255,255,0.02); }
+
+.preflight-title { font-size:12px; font-weight:600; color:var(--muted); letter-spacing:.05em; text-transform:uppercase; }
+.preflight-badge {
+  margin-left:auto;
+  font-size:11px; font-weight:600;
+  padding:2px 8px; border-radius:20px;
+  background:rgba(239,68,68,0.12); color:#f87171;
+}
+.preflight-badge.all-good { background:rgba(34,197,94,0.12); color:#4ade80; }
+.chevron { font-size:10px; color:var(--dim); transition:transform .2s; }
+.preflight.collapsed .chevron { transform:rotate(-90deg); }
+.preflight.collapsed .preflight-body { display:none; }
+
+.preflight-body { border-top:1px solid var(--border); }
+
+.check-row {
+  display:flex; align-items:center;
+  padding:11px 16px;
+  gap:12px;
+  border-bottom:1px solid var(--border);
+  transition:background .14s;
+}
+.check-row:last-child { border-bottom:none; }
+.check-row:hover { background:rgba(255,255,255,0.02); }
+
+.check-icon { font-size:16px; flex-shrink:0; width:24px; text-align:center; }
+.check-info { flex:1; min-width:0; }
+.check-name  { font-size:13px; font-weight:500; color:var(--text); }
+.check-desc  { font-size:11px; color:var(--muted); margin-top:1px; }
+
+.check-action { flex-shrink:0; display:flex; align-items:center; gap:8px; }
+
+/* iOS toggle switch */
+.toggle { position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
+.toggle input { opacity:0; width:0; height:0; }
+.slider {
+  position:absolute; inset:0; border-radius:24px;
+  background:#2a2a3a; cursor:pointer; transition:.2s;
+}
+.slider::before {
+  content:''; position:absolute;
+  width:18px; height:18px;
+  left:3px; bottom:3px;
+  background:#fff; border-radius:50%; transition:.2s;
+  box-shadow:0 1px 4px rgba(0,0,0,.4);
+}
+.toggle input:checked + .slider { background:var(--green); }
+.toggle input:checked + .slider::before { transform:translateX(18px); }
+.toggle input:disabled + .slider { cursor:default; }
+
+.fix-btn {
+  font-size:11px; padding:3px 9px;
+  border-color:rgba(239,68,68,0.4); color:#f87171;
+}
+.fix-btn:hover { background:rgba(239,68,68,0.08); border-color:#ef4444; }
+
+/* API key inline input */
+.key-input-wrap { display:none; gap:6px; align-items:center; }
+.key-input-wrap.visible { display:flex; }
+.key-input {
+  background:var(--bg); border:1px solid var(--border);
+  border-radius:6px; padding:4px 8px;
+  color:var(--text); font-size:11px; font-family:'SF Mono',monospace;
+  width:220px; outline:none;
+}
+.key-input:focus { border-color:#3b82f6; }
+.key-save-btn { font-size:11px; padding:3px 9px; border-color:rgba(59,130,246,0.4); color:#60a5fa; }
+.key-save-btn:hover { background:rgba(59,130,246,0.08); border-color:#3b82f6; }
 
 /* ── Chat ── */
 .chat {
-  flex: 1;
-  overflow-y: auto;
-  padding: 14px 20px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display:flex; flex-direction:column; gap:4px;
+  min-height:100px;
 }
-.chat::-webkit-scrollbar { width: 3px; }
-.chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-.row {
-  display: flex;
-  animation: pop 0.2s cubic-bezier(0.34, 1.5, 0.64, 1);
-}
-.row.you  { justify-content: flex-end; }
-.row.them { justify-content: flex-start; }
-
+.row { display:flex; animation:pop .2s cubic-bezier(.34,1.5,.64,1); }
+.row.you  { justify-content:flex-end; }
+.row.them { justify-content:flex-start; }
 @keyframes pop {
-  from { opacity: 0; transform: scale(0.9) translateY(8px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
+  from { opacity:0; transform:scale(.9) translateY(8px); }
+  to   { opacity:1; transform:scale(1) translateY(0); }
 }
 
 .bubble {
-  max-width: 68%;
-  padding: 9px 13px;
-  border-radius: 18px;
-  font-size: 15px;
-  line-height: 1.45;
-  word-break: break-word;
+  max-width:72%; padding:9px 13px; border-radius:18px;
+  font-size:15px; line-height:1.45; word-break:break-word;
 }
+.row.you  .bubble { background:var(--you); color:#fff; border-bottom-right-radius:5px; }
+.row.them .bubble { background:var(--them); border:1px solid var(--them-b); color:#c4cfdf; border-bottom-left-radius:5px; }
+.row.you  + .row.you  .bubble { border-top-right-radius:6px; }
+.row.them + .row.them .bubble { border-top-left-radius:6px; }
 
-.row.you  .bubble {
-  background: var(--you-bg);
-  color: #fff;
-  border-bottom-right-radius: 5px;
+.ts { display:block; font-size:10px; font-family:'SF Mono',monospace; opacity:.45; margin-top:3px; }
+.row.you  .ts { text-align:right; }
+.row.them .ts { text-align:left; }
+
+.empty-state {
+  text-align:center; padding:32px 0;
+  color:var(--dim); font-size:13px;
+  display:flex; flex-direction:column; gap:8px; align-items:center;
 }
-.row.them .bubble {
-  background: var(--them-bg);
-  border: 1px solid var(--them-border);
-  color: #c4cfdf;
-  border-bottom-left-radius: 5px;
+.empty-state .big { font-size:32px; opacity:.3; }
+
+/* ── Bottom action buttons (below chat) ── */
+.chat-actions {
+  display:flex; gap:8px; padding-top:4px;
+  justify-content:flex-end;
 }
+.btn-save  { border-color:rgba(148,163,184,.3); }
+.btn-sum   { border-color:rgba(167,139,250,.4); color:var(--purple); }
+.btn-sum:hover:not(:disabled) { background:rgba(167,139,250,.08); border-color:#7c3aed; }
 
-/* tighter corner for consecutive same-side bubbles */
-.row.you  + .row.you  .bubble { border-top-right-radius: 6px; }
-.row.them + .row.them .bubble { border-top-left-radius: 6px; }
-
-.ts {
-  display: block;
-  font-size: 10px;
-  font-family: 'SF Mono', monospace;
-  opacity: 0.45;
-  margin-top: 3px;
-}
-.row.you  .ts { text-align: right; }
-.row.them .ts { text-align: left; }
-
-/* ── Live typing bars ── */
+/* ── Live bar (bottom) ── */
 .live-bar {
-  border-top: 1px solid var(--border);
-  background: var(--surface);
-  flex-shrink: 0;
-  padding: 10px 20px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
+  border-top:1px solid var(--border);
+  background:var(--surface); flex-shrink:0;
+  padding:10px 20px 12px;
+  display:flex; flex-direction:column; align-items:center; gap:9px;
 }
 
-.live-slots {
-  display: flex;
-  gap: 14px;
-}
+.live-inner { width:100%; max-width:700px; display:flex; flex-direction:column; gap:9px; }
 
-.live-slot { flex: 1; min-width: 0; }
+.live-slots { display:flex; gap:14px; }
+.live-slot  { flex:1; min-width:0; }
+.live-who   { font-size:9px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-bottom:3px; }
+.live-who.you  { color:#60a5fa; }
+.live-who.them { color:#34d399; }
+.live-text  { font-size:13px; line-height:1.4; min-height:18px; color:var(--muted); }
 
-.live-who {
-  font-size: 9px; font-weight: 700;
-  letter-spacing: 0.1em; text-transform: uppercase;
-  margin-bottom: 3px;
-}
-.live-who.you  { color: #60a5fa; }
-.live-who.them { color: #34d399; }
+.w { display:inline; }
+.kw-you  { color:#93c5fd; background:rgba(59,130,246,.2); border-radius:3px; padding:0 2px; animation:pulse .75s ease-in-out infinite; }
+.kw-them { color:#6ee7b7; background:rgba(52,211,153,.15); border-radius:3px; padding:0 2px; animation:pulse .75s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-.live-text {
-  font-size: 13px; line-height: 1.4;
-  min-height: 18px; color: var(--muted);
-}
-
-/* karaoke highlight */
-.w { display: inline; }
-.kw-you {
-  color: #93c5fd;
-  background: rgba(59,130,246,0.2);
-  border-radius: 3px; padding: 0 2px;
-  animation: pulse 0.75s ease-in-out infinite;
-}
-.kw-them {
-  color: #6ee7b7;
-  background: rgba(52,211,153,0.15);
-  border-radius: 3px; padding: 0 2px;
-  animation: pulse 0.75s ease-in-out infinite;
-}
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-/* ── Main action buttons ── */
-.action-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
+.action-row { display:flex; gap:8px; }
 
 #btnStart {
-  flex: 1;
-  padding: 9px 0;
-  font-size: 13px;
-  font-weight: 700;
-  border-radius: 10px;
-  border-color: rgba(59,130,246,0.5);
-  color: #60a5fa;
-  letter-spacing: 0.01em;
+  flex:1; padding:9px 0; font-size:13px; font-weight:700;
+  border-radius:10px; border-color:rgba(59,130,246,.5); color:#60a5fa;
 }
-#btnStart:hover { background: rgba(59,130,246,0.1); border-color: #3b82f6; }
-#btnStart.recording {
-  border-color: rgba(239,68,68,0.5);
-  color: #f87171;
-}
-#btnStart.recording:hover { background: rgba(239,68,68,0.08); border-color: #ef4444; }
+#btnStart:hover { background:rgba(59,130,246,.1); border-color:#3b82f6; }
+#btnStart.recording { border-color:rgba(239,68,68,.5); color:#f87171; }
+#btnStart.recording:hover { background:rgba(239,68,68,.08); border-color:#ef4444; }
 
 #btnCapture {
-  padding: 9px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 10px;
-  border-color: rgba(52,211,153,0.4);
-  color: #34d399;
-  white-space: nowrap;
+  padding:9px 14px; font-size:12px; font-weight:600;
+  border-radius:10px; border-color:rgba(52,211,153,.4); color:#34d399;
+  white-space:nowrap;
 }
-#btnCapture:hover:not(:disabled) { background: rgba(52,211,153,0.08); border-color: #34d399; }
-#btnCapture.capturing { border-color: rgba(239,68,68,0.5); color: #f87171; }
-#btnCapture.capturing:hover { background: rgba(239,68,68,0.08); border-color: #ef4444; }
-#btnCapture:disabled { opacity: 0.3; }
+#btnCapture:hover:not(:disabled) { background:rgba(52,211,153,.08); border-color:#34d399; }
+#btnCapture.capturing { border-color:rgba(239,68,68,.5); color:#f87171; }
+#btnCapture.capturing:hover { background:rgba(239,68,68,.08); border-color:#ef4444; }
 
-/* ── Modal ── */
+/* ── Modals ── */
 .overlay {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.78);
-  z-index: 50; align-items: center; justify-content: center;
-  backdrop-filter: blur(6px);
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.78); z-index:50;
+  align-items:center; justify-content:center;
+  backdrop-filter:blur(6px);
 }
-.overlay.open { display: flex; }
+.overlay.open { display:flex; }
 
 .modal {
-  background: #0f0f16; border: 1px solid #22222e;
-  border-radius: 16px; padding: 24px;
-  max-width: 580px; width: 92%; max-height: 80vh;
-  overflow-y: auto;
-  animation: mIn 0.18s ease-out;
+  background:#0f0f18; border:1px solid #222230;
+  border-radius:16px; padding:24px;
+  max-width:580px; width:92%; max-height:82vh;
+  overflow-y:auto;
+  animation:mIn .18s ease-out;
 }
 @keyframes mIn {
-  from { opacity:0; transform: scale(0.95) translateY(10px); }
-  to   { opacity:1; transform: scale(1) translateY(0); }
+  from { opacity:0; transform:scale(.95) translateY(10px); }
+  to   { opacity:1; transform:scale(1) translateY(0); }
 }
-.modal-title { font-size: 14px; font-weight: 700; margin-bottom: 16px; }
-.modal-body  { font-size: 13px; line-height: 1.8; color: #94a3b8; white-space: pre-wrap; }
-.modal-footer { margin-top: 18px; display: flex; gap: 8px; justify-content: flex-end; }
+.modal-title { font-size:14px; font-weight:700; margin-bottom:18px; color:var(--text); }
+.modal-body  { font-size:13px; line-height:1.8; color:#94a3b8; white-space:pre-wrap; }
+.modal-footer { margin-top:18px; display:flex; gap:8px; justify-content:flex-end; }
+
+/* Settings modal specifics */
+.settings-section { margin-bottom:22px; }
+.settings-label {
+  font-size:10px; font-weight:700; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--muted); margin-bottom:10px;
+}
+.prompt-box {
+  background:var(--bg); border:1px solid var(--border);
+  border-radius:8px; padding:12px;
+  font-size:12px; font-family:'SF Mono',monospace;
+  color:#94a3b8; line-height:1.7;
+  white-space:pre-wrap; word-break:break-word;
+  max-height:200px; overflow-y:auto;
+}
+.prompt-box::-webkit-scrollbar { width:3px; }
+.prompt-box::-webkit-scrollbar-thumb { background:var(--border); }
+.setup-step {
+  display:flex; gap:10px; align-items:flex-start;
+  margin-bottom:10px; font-size:13px; color:#94a3b8;
+}
+.step-num {
+  width:22px; height:22px; border-radius:50%;
+  background:rgba(59,130,246,.15); color:#60a5fa;
+  font-size:11px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.setup-step code {
+  font-family:'SF Mono',monospace; font-size:11px;
+  background:var(--border); padding:1px 5px; border-radius:3px; color:var(--text);
+}
 
 /* ── Toast ── */
 .toast {
-  position: fixed; bottom: 88px; left: 50%;
-  transform: translateX(-50%) translateY(8px);
-  background: #1a1a24; border: 1px solid #2a2a38;
-  border-radius: 8px; padding: 7px 14px;
-  font-size: 12px; color: #94a3b8;
-  opacity: 0; transition: all 0.2s;
-  pointer-events: none; white-space: nowrap; z-index: 40;
+  position:fixed; bottom:90px; left:50%;
+  transform:translateX(-50%) translateY(8px);
+  background:#1a1a26; border:1px solid #2a2a38;
+  border-radius:8px; padding:7px 14px;
+  font-size:12px; color:#94a3b8;
+  opacity:0; transition:all .2s;
+  pointer-events:none; white-space:nowrap; z-index:40;
 }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
 
+<!-- Header -->
 <header>
   <div class="brand"><span>耳</span> Mimi</div>
   <div class="sep"></div>
@@ -278,38 +331,160 @@ button:disabled { opacity: 0.28; cursor: not-allowed; }
   </div>
   <span class="timer" id="timer">00:00:00</span>
   <div class="hdr-right">
-    <button id="btnSave" disabled onclick="saveRaw()">Save</button>
-    <button class="btn-sum" id="btnSum" disabled onclick="openSummary()">Summarize</button>
+    <button class="btn-gear" title="Settings &amp; Setup" onclick="openSettings()">⚙</button>
   </div>
 </header>
 
-<div class="chat" id="chat"></div>
+<!-- Main scroll area -->
+<div class="scroll-area" id="scrollArea">
+<div class="container">
 
-<div class="live-bar">
-  <div class="live-slots">
-    <div class="live-slot">
-      <div class="live-who you">You</div>
-      <div class="live-text" id="youLive"></div>
+  <!-- Pre-flight checks -->
+  <div class="preflight" id="preflight">
+    <div class="preflight-head" onclick="togglePreflight()">
+      <span class="preflight-title">Requirements</span>
+      <span class="preflight-badge" id="preflightBadge">checking…</span>
+      <span class="chevron">▾</span>
     </div>
-    <div class="live-slot">
-      <div class="live-who them">Them</div>
-      <div class="live-text" id="themLive"></div>
+    <div class="preflight-body">
+
+      <!-- Microphone -->
+      <div class="check-row" id="row-mic">
+        <span class="check-icon">🎙</span>
+        <div class="check-info">
+          <div class="check-name">Microphone</div>
+          <div class="check-desc">Required for YOU channel transcription</div>
+        </div>
+        <div class="check-action">
+          <button class="fix-btn" id="fix-mic" onclick="fixMic()" style="display:none">Fix →</button>
+          <label class="toggle"><input type="checkbox" id="sw-mic" disabled><span class="slider"></span></label>
+        </div>
+      </div>
+
+      <!-- Screen Recording -->
+      <div class="check-row" id="row-screen">
+        <span class="check-icon">🖥</span>
+        <div class="check-info">
+          <div class="check-name">Screen Recording</div>
+          <div class="check-desc">Required to capture system audio (Slack, Teams, YouTube)</div>
+        </div>
+        <div class="check-action">
+          <button class="fix-btn" id="fix-screen" onclick="fixScreen()" style="display:none">Fix →</button>
+          <label class="toggle"><input type="checkbox" id="sw-screen" disabled><span class="slider"></span></label>
+        </div>
+      </div>
+
+      <!-- Whisper model -->
+      <div class="check-row" id="row-model">
+        <span class="check-icon">🧠</span>
+        <div class="check-info">
+          <div class="check-name">Whisper Model</div>
+          <div class="check-desc">AI model for system audio transcription (~75MB)</div>
+        </div>
+        <div class="check-action">
+          <span class="check-desc" id="model-hint" style="font-size:11px;color:var(--muted)"></span>
+          <label class="toggle"><input type="checkbox" id="sw-model" disabled><span class="slider"></span></label>
+        </div>
+      </div>
+
+      <!-- API Key -->
+      <div class="check-row" id="row-key">
+        <span class="check-icon">🔑</span>
+        <div class="check-info">
+          <div class="check-name">Anthropic API Key</div>
+          <div class="check-desc">Required for AI meeting summary</div>
+        </div>
+        <div class="check-action" style="flex-wrap:wrap; gap:6px; justify-content:flex-end;">
+          <div class="key-input-wrap" id="keyInputWrap">
+            <input class="key-input" id="keyInput" type="password" placeholder="sk-ant-api03-..." />
+            <button class="key-save-btn" onclick="saveKey()">Save</button>
+          </div>
+          <button class="fix-btn" id="fix-key" onclick="showKeyInput()" style="display:none">Add Key →</button>
+          <label class="toggle"><input type="checkbox" id="sw-key" disabled><span class="slider"></span></label>
+        </div>
+      </div>
+
     </div>
   </div>
-  <div class="action-row">
-    <button id="btnStart" onclick="toggleAll()">Start Listening</button>
-    <button id="btnCapture" onclick="toggleCapture()" title="Capture system audio (YouTube, Slack, Teams)">Capture System Audio</button>
+
+  <!-- Chat -->
+  <div class="chat" id="chat">
+    <div class="empty-state" id="emptyState">
+      <span class="big">耳</span>
+      <span>Hit <strong>Start Listening</strong> to begin transcribing</span>
+    </div>
+  </div>
+
+  <!-- Chat action buttons (below bubbles) -->
+  <div class="chat-actions" id="chatActions" style="display:none">
+    <button class="btn-save" id="btnSave" onclick="saveRaw()">Save Raw</button>
+    <button class="btn-sum"  id="btnSum"  onclick="openSummary()">Summarize with AI</button>
+  </div>
+
+</div>
+</div>
+
+<!-- Live bar -->
+<div class="live-bar">
+  <div class="live-inner">
+    <div class="live-slots">
+      <div class="live-slot">
+        <div class="live-who you">You</div>
+        <div class="live-text" id="youLive"></div>
+      </div>
+      <div class="live-slot">
+        <div class="live-who them">Them</div>
+        <div class="live-text" id="themLive"></div>
+      </div>
+    </div>
+    <div class="action-row">
+      <button id="btnStart"   onclick="toggleAll()">Start Listening</button>
+      <button id="btnCapture" onclick="toggleCapture()">Capture System Audio</button>
+    </div>
   </div>
 </div>
 
-<div class="overlay" id="overlay">
+<!-- Summary modal -->
+<div class="overlay" id="overlaySum">
   <div class="modal">
     <div class="modal-title">耳 Meeting Summary</div>
-    <div class="modal-body" id="modalBody">Generating…</div>
+    <div class="modal-body" id="sumBody">Generating…</div>
     <div class="modal-footer">
       <button onclick="copyModal()">Copy</button>
-      <button onclick="saveModal()">Save</button>
-      <button onclick="closeModal()">Close</button>
+      <button onclick="saveSummary()">Save</button>
+      <button onclick="document.getElementById('overlaySum').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="overlay" id="overlaySettings">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title">⚙ Settings &amp; Setup</div>
+
+    <!-- AI Prompt -->
+    <div class="settings-section">
+      <div class="settings-label">Reusable AI Context Prompt</div>
+      <div class="prompt-box" id="aiPrompt"></div>
+      <div style="margin-top:8px; display:flex; gap:8px;">
+        <button onclick="copyPrompt()" style="border-color:rgba(167,139,250,.4);color:var(--purple)">Copy Prompt</button>
+        <span style="font-size:11px;color:var(--muted);align-self:center">Paste into Claude / ChatGPT for context about this app</span>
+      </div>
+    </div>
+
+    <!-- Install guide -->
+    <div class="settings-section">
+      <div class="settings-label">New Machine Setup</div>
+      <div class="setup-step"><div class="step-num">1</div><div>Clone: <code>git clone https://github.com/bunlongheng/mimi ~/Sites/mimi</code></div></div>
+      <div class="setup-step"><div class="step-num">2</div><div>Install deps: <code>brew install whisper-cpp ffmpeg</code></div></div>
+      <div class="setup-step"><div class="step-num">3</div><div>Download model: <code>cd ~/Sites/mimi && mkdir -p models && curl -L "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin" -o models/ggml-tiny.en.bin</code></div></div>
+      <div class="setup-step"><div class="step-num">4</div><div>Add API key: <code>echo "ANTHROPIC_API_KEY=sk-ant-..." > .env.local</code></div></div>
+      <div class="setup-step"><div class="step-num">5</div><div>Install &amp; start: <code>npm install && node server.js</code></div></div>
+      <div class="setup-step"><div class="step-num">6</div><div>Auto-start: <code>cp com.mimi.captions.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.mimi.captions.plist</code></div></div>
+    </div>
+
+    <div class="modal-footer">
+      <button onclick="document.getElementById('overlaySettings').classList.remove('open')">Close</button>
     </div>
   </div>
 </div>
@@ -317,303 +492,316 @@ button:disabled { opacity: 0.28; cursor: not-allowed; }
 <div class="toast" id="toast"></div>
 
 <script>
-const ch = {
-  you:  { r: null, on: false, lines: [] },
-  them: { r: null, on: false, lines: [] },
-};
-let startMs = null, timerTick = null, isRecording = false;
+// ── State ──────────────────────────────────────────────────────────────
+const ch = { you: { r:null, on:false, lines:[] }, them: { r:null, on:false, lines:[] } };
+let startMs=null, timerTick=null, isRecording=false;
+let captureStream=null, captureRecorder=null, captureOn=false;
 
-// ── Helpers ────────────────────────────────────────────────────────────
+// ── Utils ──────────────────────────────────────────────────────────────
 function elapsed() {
   if (!startMs) return '0:00';
-  const s = Math.floor((Date.now() - startMs) / 1000);
+  const s = Math.floor((Date.now()-startMs)/1000);
   return `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
 }
-
-function showToast(msg, ms = 2500) {
+function showToast(msg, ms=2600) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), ms);
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), ms);
 }
-
-// safe download — appends to body so it doesn't steal focus from SpeechRecognition
 function triggerDownload(text, filename) {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
-  a.download = filename;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 300);
+  a.href = URL.createObjectURL(new Blob([text],{type:'text/plain'}));
+  a.download = filename; a.style.display='none';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 300);
 }
-
-// ── Karaoke renderer ───────────────────────────────────────────────────
 function renderLive(id, text, side) {
   const el = document.getElementById(id);
-  if (!text) { el.innerHTML = ''; return; }
+  if (!text) { el.innerHTML=''; return; }
   const words = text.trim().split(/\s+/);
-  el.innerHTML = words.map((w, i) =>
-    `<span class="w ${i === words.length - 1 ? 'kw-' + side : ''}">${w} </span>`
-  ).join('');
+  el.innerHTML = words.map((w,i)=>`<span class="w ${i===words.length-1?'kw-'+side:''}">${w} </span>`).join('');
 }
 
-// ── Add bubble ─────────────────────────────────────────────────────────
+// ── Pre-flight checks ──────────────────────────────────────────────────
+let preflightOpen = true;
+
+function togglePreflight() {
+  preflightOpen = !preflightOpen;
+  document.getElementById('preflight').classList.toggle('collapsed', !preflightOpen);
+}
+
+async function runPreflightChecks() {
+  // Microphone
+  try {
+    const perm = await navigator.permissions.query({ name: 'microphone' });
+    setCheck('mic', perm.state === 'granted');
+    perm.onchange = () => setCheck('mic', perm.state === 'granted');
+  } catch { setCheck('mic', false); }
+
+  // Screen recording — test via getDisplayMedia availability (can't reliably pre-check)
+  // Mark as unknown until they actually use it
+  const hasGetDisplay = !!(navigator.mediaDevices?.getDisplayMedia);
+  setCheck('screen', hasGetDisplay, true); // optimistic — will fail on actual use if denied
+
+  // Model
+  try {
+    const r = await fetch('/api/session/status');
+    const d = await r.json();
+    setCheck('model', d.modelReady);
+    setCheck('key',   d.apiKeySet);
+    if (!d.modelReady) document.getElementById('model-hint').textContent = 'See setup instructions';
+  } catch { setCheck('model', false); setCheck('key', false); }
+
+  updatePreflightBadge();
+}
+
+function setCheck(id, ok, silent=false) {
+  const sw  = document.getElementById(`sw-${id}`);
+  const fix = document.getElementById(`fix-${id}`);
+  if (sw)  sw.checked = ok;
+  if (fix && !silent) fix.style.display = ok ? 'none' : 'inline-flex';
+  updatePreflightBadge();
+}
+
+function updatePreflightBadge() {
+  const checks = ['mic','screen','model','key'];
+  const allOk  = checks.every(id => document.getElementById(`sw-${id}`)?.checked);
+  const badge  = document.getElementById('preflightBadge');
+  if (allOk) {
+    badge.textContent = 'All ready ✓';
+    badge.className   = 'preflight-badge all-good';
+    // Auto-collapse after short delay
+    setTimeout(()=>{ preflightOpen=false; document.getElementById('preflight').classList.add('collapsed'); }, 1500);
+  } else {
+    const failCount = checks.filter(id => !document.getElementById(`sw-${id}`)?.checked).length;
+    badge.textContent = `${failCount} needed`;
+    badge.className   = 'preflight-badge';
+  }
+}
+
+async function fixMic() {
+  try { await navigator.mediaDevices.getUserMedia({ audio: true }); setCheck('mic', true); }
+  catch { await fetch('/api/open-prefs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'microphone'}) }); }
+}
+async function fixScreen() {
+  await fetch('/api/open-prefs', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:'screen'}) });
+}
+function showKeyInput() {
+  document.getElementById('keyInputWrap').classList.add('visible');
+  document.getElementById('fix-key').style.display = 'none';
+  document.getElementById('keyInput').focus();
+}
+async function saveKey() {
+  const key = document.getElementById('keyInput').value.trim();
+  if (!key) return;
+  const r = await fetch('/api/set-key', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({key}) });
+  const d = await r.json();
+  if (d.ok) { setCheck('key', true); document.getElementById('keyInputWrap').classList.remove('visible'); showToast('API key saved'); }
+  else showToast(d.error || 'Error saving key');
+}
+
+// ── Chat ───────────────────────────────────────────────────────────────
 function addBubble(side, text) {
   if (!text.trim()) return;
+  document.getElementById('emptyState')?.remove();
   const stamp = elapsed();
-  const chat = document.getElementById('chat');
-  const row = document.createElement('div');
+  const chat  = document.getElementById('chat');
+  const row   = document.createElement('div');
   row.className = `row ${side}`;
-  row.innerHTML = `<div class="bubble">${text.trim()}<span class="ts">${stamp}</span></div>`;
+  row.innerHTML  = `<div class="bubble">${text.trim()}<span class="ts">${stamp}</span></div>`;
   chat.appendChild(row);
-  chat.scrollTop = chat.scrollHeight;
-  ch[side].lines.push({ stamp, side, text: text.trim() });
-  document.getElementById('btnSave').disabled = false;
-  document.getElementById('btnSum').disabled = false;
+  document.getElementById('scrollArea').scrollTop = 99999;
+  ch[side].lines.push({ stamp, side, text:text.trim() });
+  document.getElementById('chatActions').style.display = 'flex';
 }
 
-// ── Build recognition for one channel ──────────────────────────────────
+// ── Recognition ────────────────────────────────────────────────────────
 function buildRec(side) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { alert('Use Chrome or Safari — Web Speech API required.'); return null; }
-
   const r = new SR();
-  r.continuous = true;
-  r.interimResults = true;
-  r.lang = 'en-US';
-
-  r.onresult = (e) => {
-    let interim = '', final = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
+  r.continuous = true; r.interimResults = true; r.lang = 'en-US';
+  r.onresult = e => {
+    let interim='', final='';
+    for (let i=e.resultIndex; i<e.results.length; i++) {
       const t = e.results[i][0].transcript;
-      e.results[i].isFinal ? (final += t) : (interim += t);
+      e.results[i].isFinal ? (final+=t) : (interim+=t);
     }
-    if (final)   { addBubble(side, final); renderLive(`${side}Live`, '', side); }
-    if (interim) { renderLive(`${side}Live`, interim, side); }
+    if (final)   { addBubble(side,final); renderLive(`${side}Live`,'',side); }
+    if (interim) { renderLive(`${side}Live`,interim,side); }
   };
-
   r.onerror = () => {};
-
-  r.onend = () => {
-    if (ch[side].on) setTimeout(() => { if (ch[side].on) r.start(); }, 80);
-  };
-
+  r.onend = () => { if (ch[side].on) setTimeout(()=>{ if(ch[side].on) r.start(); },80); };
   return r;
 }
 
-// ── Toggle all — ONE recognition instance on mic ───────────────────────
-// THEM channel needs BlackHole as system input to get a separate stream.
-// Until then, one mic = one instance. All mic output → YOU bubbles.
 function toggleAll() {
   const btn = document.getElementById('btnStart');
-
   if (isRecording) {
-    ch.you.on = false;
-    ch.you.r?.stop();
-    ch.you.r = null;
-    renderLive('youLive', '', 'you');
-    renderLive('themLive', '', 'them');
-    isRecording = false;
-    btn.textContent = 'Start Listening';
-    btn.classList.remove('recording');
-    clearInterval(timerTick); timerTick = null;
-    document.getElementById('recDot').className = 'dot';
-    document.getElementById('recLabel').textContent = 'idle';
+    ch.you.on=false; ch.you.r?.stop(); ch.you.r=null;
+    renderLive('youLive','','you');
+    isRecording=false;
+    btn.textContent='Start Listening'; btn.classList.remove('recording');
+    clearInterval(timerTick); timerTick=null;
+    document.getElementById('recDot').className='dot';
+    document.getElementById('recLabel').textContent='idle';
+    updateSession(false);
   } else {
-    const r = buildRec('you');
-    if (!r) return;
-    ch.you.r = r;
-    ch.you.on = true;
-    r.start();
-    isRecording = true;
-    btn.textContent = 'Stop';
-    btn.classList.add('recording');
+    const r = buildRec('you'); if (!r) return;
+    ch.you.r=r; ch.you.on=true; r.start();
+    isRecording=true;
+    btn.textContent='Stop'; btn.classList.add('recording');
     if (!startMs) {
-      startMs = Date.now();
-      timerTick = setInterval(() => {
-        const e = Date.now() - startMs;
-        const hh = Math.floor(e/3600000).toString().padStart(2,'0');
-        const mm = Math.floor((e%3600000)/60000).toString().padStart(2,'0');
-        const ss = Math.floor((e%60000)/1000).toString().padStart(2,'0');
-        document.getElementById('timer').textContent = `${hh}:${mm}:${ss}`;
-      }, 500);
+      startMs=Date.now();
+      timerTick=setInterval(()=>{
+        const e=Date.now()-startMs;
+        document.getElementById('timer').textContent=
+          `${Math.floor(e/3600000).toString().padStart(2,'0')}:${Math.floor((e%3600000)/60000).toString().padStart(2,'0')}:${Math.floor((e%60000)/1000).toString().padStart(2,'0')}`;
+      },500);
     }
-    document.getElementById('recDot').className = 'dot live';
-    document.getElementById('recLabel').textContent = 'live';
+    document.getElementById('recDot').className='dot live';
+    document.getElementById('recLabel').textContent='live';
+    updateSession(true);
   }
 }
 
-// ── Build raw transcript ───────────────────────────────────────────────
-function buildRaw() {
-  const all = [
-    ...ch.you.lines.map(l => ({ ...l, who: 'YOU ' })),
-    ...ch.them.lines.map(l => ({ ...l, who: 'THEM' })),
-  ].sort((a, b) => a.stamp.localeCompare(b.stamp));
-  return all.map(l => `[${l.stamp}] ${l.who}: ${l.text}`).join('\n');
-}
-
-// ── Save raw ───────────────────────────────────────────────────────────
-async function saveRaw() {
-  const text = buildRaw();
-  const filename = `mimi-${new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')}.txt`;
-  try {
-    const r = await fetch('/api/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transcript: text, filename }),
-    });
-    const d = await r.json();
-    showToast(d.saved ? 'Saved to Desktop' : `Error: ${d.error}`);
-  } catch {
-    triggerDownload(text, filename);
-    showToast('Downloaded');
-  }
-}
-
-// ── Summary ────────────────────────────────────────────────────────────
-async function openSummary() {
-  document.getElementById('modalBody').textContent = 'Generating…';
-  document.getElementById('overlay').classList.add('open');
-  try {
-    const r = await fetch('/api/summary', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transcript: buildRaw() }),
-    });
-    const d = await r.json();
-    document.getElementById('modalBody').textContent =
-      d.summary || d.error || 'Empty response.';
-  } catch (e) {
-    document.getElementById('modalBody').textContent =
-      `Error: ${e.message}\n\nAdd ANTHROPIC_API_KEY to ~/Sites/mimi/.env.local and restart the server.`;
-  }
-}
-
-function closeModal() { document.getElementById('overlay').classList.remove('open'); }
-
-function copyModal() {
-  navigator.clipboard.writeText(document.getElementById('modalBody').textContent);
-  showToast('Copied');
-}
-
-async function saveModal() {
-  const text = document.getElementById('modalBody').textContent;
-  const filename = `mimi-summary-${new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')}.txt`;
-  try {
-    const r = await fetch('/api/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transcript: text, filename }),
-    });
-    const d = await r.json();
-    showToast(d.saved ? 'Summary saved to Desktop' : `Error: ${d.error}`);
-  } catch {
-    triggerDownload(text, filename);
-    showToast('Downloaded');
-  }
-}
-
-document.getElementById('overlay').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
-});
-
-// ── System audio capture via getDisplayMedia ───────────────────────────
-let captureStream = null, captureRecorder = null, captureOn = false;
-
+// ── System audio capture ────────────────────────────────────────────────
 async function toggleCapture() {
   const btn = document.getElementById('btnCapture');
-
   if (captureOn) {
     captureRecorder?.stop();
-    captureStream?.getTracks().forEach(t => t.stop());
-    captureStream = null; captureRecorder = null; captureOn = false;
-    btn.textContent = 'Capture System Audio';
-    btn.classList.remove('capturing');
-    renderLive('themLive', '', 'them');
+    captureStream?.getTracks().forEach(t=>t.stop());
+    captureStream=null; captureRecorder=null; captureOn=false;
+    btn.textContent='Capture System Audio'; btn.classList.remove('capturing');
+    renderLive('themLive','','them');
     return;
   }
-
-  // Check model is ready
   try {
     const s = await fetch('/api/model-status');
     const d = await s.json();
-    if (!d.ready) {
-      showToast('Model still downloading, wait a moment…', 3000);
-      return;
-    }
+    if (!d.ready) { showToast('Whisper model not ready — see setup'); return; }
   } catch { showToast('Server not responding'); return; }
 
   try {
-    // Prompt user to share screen/tab — check "Share tab audio" when prompted
-    captureStream = await navigator.mediaDevices.getDisplayMedia({
-      video: true,   // must be true for macOS to allow audio
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        sampleRate: 16000,
-      },
-    });
-  } catch (e) {
-    showToast('Screen capture cancelled or denied');
-    return;
-  }
+    captureStream = await navigator.mediaDevices.getDisplayMedia({ video:true, audio:{ echoCancellation:false, noiseSuppression:false } });
+    setCheck('screen', true);
+  } catch { showToast('Screen capture cancelled or denied'); return; }
 
-  // Only keep audio track
-  captureStream.getVideoTracks().forEach(t => t.stop());
-
+  captureStream.getVideoTracks().forEach(t=>t.stop());
   const audioTrack = captureStream.getAudioTracks()[0];
-  if (!audioTrack) {
-    showToast('No audio track — tick "Share tab audio" when selecting the tab');
-    return;
-  }
+  if (!audioTrack) { showToast('No audio — tick "Share tab audio" when selecting the tab', 4000); return; }
 
-  captureOn = true;
-  btn.textContent = 'Stop Capture';
-  btn.classList.add('capturing');
-
+  captureOn=true; btn.textContent='Stop Capture'; btn.classList.add('capturing');
   const audioStream = new MediaStream([audioTrack]);
+  updateSession(true);
 
-  // Record in 4-second chunks → send to backend → whisper transcribes
   function startChunk() {
     if (!captureOn) return;
-    const rec = new MediaRecorder(audioStream, { mimeType: 'audio/webm;codecs=opus' });
-    const chunks = [];
-
-    rec.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-
-    rec.onstop = async () => {
+    const rec = new MediaRecorder(audioStream, { mimeType:'audio/webm;codecs=opus' });
+    const chunks=[];
+    rec.ondataavailable = e=>{ if(e.data.size>0) chunks.push(e.data); };
+    rec.onstop = async ()=>{
       if (!captureOn) return;
-      const blob = new Blob(chunks, { type: 'audio/webm' });
-      if (blob.size < 1000) { startChunk(); return; }
-
-      renderLive('themLive', '…', 'them');
+      const blob = new Blob(chunks,{type:'audio/webm'});
+      if (blob.size<1000) { startChunk(); return; }
+      renderLive('themLive','…','them');
       try {
         const buf = await blob.arrayBuffer();
-        const r = await fetch('/api/transcribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'audio/webm' },
-          body: buf,
-        });
+        const r = await fetch('/api/transcribe',{ method:'POST', headers:{'Content-Type':'audio/webm'}, body:buf });
         const d = await r.json();
-        if (d.text && d.text.trim()) {
-          addBubble('them', d.text.trim());
-          renderLive('themLive', '', 'them');
-        } else {
-          renderLive('themLive', '', 'them');
-        }
-      } catch { renderLive('themLive', '', 'them'); }
-
-      startChunk(); // immediately start next chunk
+        if (d.text?.trim()) { addBubble('them',d.text.trim()); renderLive('themLive','','them'); }
+        else renderLive('themLive','','them');
+      } catch { renderLive('themLive','','them'); }
+      startChunk();
     };
-
-    captureRecorder = rec;
-    rec.start();
-    setTimeout(() => { if (rec.state === 'recording') rec.stop(); }, 4000);
+    captureRecorder=rec; rec.start();
+    setTimeout(()=>{ if(rec.state==='recording') rec.stop(); },4000);
   }
-
   startChunk();
 }
+
+// ── Session state (for menu bar) ────────────────────────────────────────
+function updateSession(capturing) {
+  fetch('/api/session/update',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({capturing}) }).catch(()=>{});
+}
+
+// ── Transcript ─────────────────────────────────────────────────────────
+function buildRaw() {
+  const all=[...ch.you.lines.map(l=>({...l,who:'YOU '})),...ch.them.lines.map(l=>({...l,who:'THEM'}))].sort((a,b)=>a.stamp.localeCompare(b.stamp));
+  return all.map(l=>`[${l.stamp}] ${l.who}: ${l.text}`).join('\n');
+}
+
+async function saveRaw() {
+  const text=buildRaw(), filename=`mimi-${new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')}.txt`;
+  try {
+    const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({transcript:text,filename})});
+    const d=await r.json();
+    showToast(d.saved?'Saved to Desktop':`Error: ${d.error}`);
+  } catch { triggerDownload(text,filename); showToast('Downloaded'); }
+}
+
+async function openSummary() {
+  document.getElementById('sumBody').textContent='Generating…';
+  document.getElementById('overlaySum').classList.add('open');
+  try {
+    const r=await fetch('/api/summary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({transcript:buildRaw()})});
+    const d=await r.json();
+    document.getElementById('sumBody').textContent=d.summary||d.error||'Empty.';
+  } catch(e) {
+    document.getElementById('sumBody').textContent=`Error: ${e.message}\n\nAdd ANTHROPIC_API_KEY via the Requirements panel.`;
+  }
+}
+
+function copyModal() { navigator.clipboard.writeText(document.getElementById('sumBody').textContent); showToast('Copied'); }
+async function saveSummary() {
+  const text=document.getElementById('sumBody').textContent;
+  const filename=`mimi-summary-${new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')}.txt`;
+  try {
+    const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({transcript:text,filename})});
+    const d=await r.json();
+    showToast(d.saved?'Summary saved to Desktop':`Error: ${d.error}`);
+  } catch { triggerDownload(text,filename); showToast('Downloaded'); }
+}
+
+// ── Settings / AI prompt ────────────────────────────────────────────────
+const AI_PROMPT = `You are helping me configure and use Mimi 耳 — a macOS live meeting transcription app.
+
+App context:
+- Runs at http://localhost:5757
+- Stack: Node.js server, Web Speech API (mic), whisper-cli (system audio), Claude API (summaries)
+- YOU channel: microphone → blue bubbles (right)
+- THEM channel: system audio via screen share → green bubbles (left)
+- Transcripts saved to Desktop as .txt files
+- AI summaries include: Summary, Action Items, Key Decisions
+
+New Mac setup:
+1. git clone https://github.com/bunlongheng/mimi ~/Sites/mimi
+2. brew install whisper-cpp ffmpeg
+3. cd ~/Sites/mimi && mkdir -p models
+   curl -L "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin" -o models/ggml-tiny.en.bin
+4. echo "ANTHROPIC_API_KEY=sk-ant-..." > .env.local
+5. npm install && node server.js
+6. Auto-start: cp com.mimi.captions.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.mimi.captions.plist
+
+Please help me: [describe your issue here]`;
+
+function openSettings() {
+  document.getElementById('aiPrompt').textContent = AI_PROMPT;
+  document.getElementById('overlaySettings').classList.add('open');
+}
+function copyPrompt() {
+  navigator.clipboard.writeText(AI_PROMPT);
+  showToast('Prompt copied to clipboard');
+}
+
+// Close modals on backdrop click
+['overlaySum','overlaySettings'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); });
+});
+
+// ── Init ───────────────────────────────────────────────────────────────
+runPreflightChecks();
+setInterval(runPreflightChecks, 15000); // re-check every 15s
 </script>
 </body>
 </html>
