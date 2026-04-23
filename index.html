@@ -109,11 +109,11 @@ button:disabled { opacity:.3; cursor:not-allowed; }
 }
 
 .bubble {
-  max-width:72%; padding:9px 13px; border-radius:18px;
+  padding:9px 13px; border-radius:18px;
   font-size:15px; line-height:1.45; word-break:break-word;
 }
 .row.you  .bubble { background:var(--you); color:#fff; border-bottom-right-radius:5px; }
-.row.them .bubble { background:var(--them-bg); color:var(--them-txt); border-bottom-left-radius:5px; }
+.row.them .bubble { background:#e2e8f0; color:#1e293b; border-bottom-left-radius:5px; }
 .row.you  + .row.you  .bubble { border-top-right-radius:6px; }
 .row.them + .row.them .bubble { border-top-left-radius:6px; }
 
@@ -564,8 +564,8 @@ function addBubble(side,text) {
   const chat=document.getElementById('chat');
   const row=document.createElement('div');
   row.className=`row ${side}`;
-  const label = side==='you' ? 'You · Mic' : 'Them · System';
-  row.innerHTML=`<div><div class="channel-label">${label}</div><div class="bubble">${escHtml(text.trim())}<span class="ts">${stamp}</span></div></div>`;
+  const label = side==='you' ? 'You · Mic' : 'System Audio';
+  row.innerHTML=`<div style="display:flex;flex-direction:column;max-width:72%"><div class="channel-label">${label}</div><div class="bubble">${escHtml(text.trim())}<span class="ts">${stamp}</span></div></div>`;
   chat.appendChild(row);
   document.getElementById('scrollArea').scrollTop=99999;
   ch[side].lines.push({stamp,side,text:text.trim()});
