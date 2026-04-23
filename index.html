@@ -387,24 +387,35 @@ function renderLive(id,text,side) {
 }
 
 // ── START everything — mic tap triggers both ───────────────────────────
-function startEverything() {
+async function startEverything() {
   if (isRecording) return;
-  const r=buildRec('you'); if (!r) return;
+
+  // Step 1: get mic grant once — no dialog if already granted, one dialog if first time
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(t => t.stop()); // we don't need the raw stream
+  } catch {
+    showToast('Mic blocked — allow it in Chrome › Site Settings', 4000);
+    return;
+  }
+
+  // Step 2: start speech recognition (mic already granted — no extra prompt)
+  const r = buildRec('you'); if (!r) return;
   ch.you.r=r; ch.you.on=true; r.start();
   isRecording=true;
   document.getElementById('emptyState').style.display='none';
   document.getElementById('btnStop').style.display='block';
-  if (!startMs) {
-    startMs=Date.now();
-    timerTick=setInterval(()=>{
-      const e=Date.now()-startMs;
-      document.getElementById('timer').textContent=
-        `${Math.floor(e/3600000).toString().padStart(2,'0')}:${Math.floor((e%3600000)/60000).toString().padStart(2,'0')}:${Math.floor((e%60000)/1000).toString().padStart(2,'0')}`;
-    },500);
-  }
+  startMs=Date.now();
+  timerTick=setInterval(()=>{
+    const e=Date.now()-startMs;
+    document.getElementById('timer').textContent=
+      `${Math.floor(e/3600000).toString().padStart(2,'0')}:${Math.floor((e%3600000)/60000).toString().padStart(2,'0')}:${Math.floor((e%60000)/1000).toString().padStart(2,'0')}`;
+  },500);
   document.getElementById('recDot').className='dot live';
   document.getElementById('recLabel').textContent='live';
   updateSession(true);
+
+  // Step 3: screen picker appears after mic is settled (one at a time)
   startCaptureAuto();
 }
 
