@@ -120,6 +120,9 @@ button:disabled { opacity:.3; cursor:not-allowed; }
 .ts { display:block; font-size:10px; font-family:'SF Mono',monospace; opacity:.45; margin-top:3px; }
 .row.you  .ts { text-align:right; }
 .row.them .ts { text-align:left; }
+.channel-label { font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; opacity:.5; margin-bottom:2px; }
+.row.you  .channel-label { text-align:right; color:var(--you); }
+.row.them .channel-label { text-align:left;  color:#0891b2; }
 
 /* ── Chat actions (below bubbles) ── */
 .chat-actions { display:flex; gap:8px; padding-top:4px; justify-content:flex-end; }
@@ -510,6 +513,7 @@ async function startCaptureAuto() {
   }
   // hide button — system audio is now active
   document.getElementById('btnSysAudio').style.display='none';
+  console.log('[mimi] audio track:', audioTrack.label, 'state:', audioTrack.readyState);
 
   captureOn=true;
   const audioStream=new MediaStream([audioTrack]);
@@ -526,6 +530,7 @@ async function startCaptureAuto() {
 
   function startChunk() {
     if (!captureOn || audioTrack.readyState==='ended') return;
+    console.log('[mimi] startChunk, track state:', audioTrack.readyState);
     const mimeType=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
       ? 'audio/webm;codecs=opus' : 'audio/webm';
     const rec=new MediaRecorder(audioStream,{mimeType});
@@ -534,14 +539,16 @@ async function startCaptureAuto() {
     rec.onstop=async()=>{
       if (!captureOn) return;
       const blob=new Blob(chunks,{type:'audio/webm'});
-      if (blob.size<1000) { startChunk(); return; }
+      console.log('[mimi] chunk blob size:', blob.size);
+      if (blob.size<500) { startChunk(); return; }
       try {
         const buf=await blob.arrayBuffer();
         const r=await fetch('/api/transcribe',{method:'POST',headers:{'Content-Type':'audio/webm'},body:buf});
         const d=await r.json();
+        console.log('[mimi] transcribe result:', d);
         if (d.text?.trim()) { addBubble('them',d.text.trim()); renderLive(null,'','them'); }
         else renderLive(null,'','them');
-      } catch { renderLive(null,'','them'); }
+      } catch(e) { console.error('[mimi] transcribe error:', e); renderLive(null,'','them'); }
       startChunk();
     };
     try { captureRecorder=rec; rec.start(); } catch { captureOn=false; return; }
@@ -557,7 +564,8 @@ function addBubble(side,text) {
   const chat=document.getElementById('chat');
   const row=document.createElement('div');
   row.className=`row ${side}`;
-  row.innerHTML=`<div class="bubble">${escHtml(text.trim())}<span class="ts">${stamp}</span></div>`;
+  const label = side==='you' ? 'You · Mic' : 'Them · System';
+  row.innerHTML=`<div><div class="channel-label">${label}</div><div class="bubble">${escHtml(text.trim())}<span class="ts">${stamp}</span></div></div>`;
   chat.appendChild(row);
   document.getElementById('scrollArea').scrollTop=99999;
   ch[side].lines.push({stamp,side,text:text.trim()});
