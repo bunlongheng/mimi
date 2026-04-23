@@ -66,12 +66,17 @@ function startAudioCapture() {
         { timeout: 10000 }
       );
       const raw = execSync(`"${WHISPER}" -m "${MODEL}" -f "${tmpWav}" -np -nt 2>/dev/null`, { timeout: 30000 }).toString();
-      const text = raw.split('\n').map(l => l.replace(/^\[.*?\]\s*/, '').trim()).filter(Boolean).join(' ').trim();
+      const text = raw
+        .split('\n')
+        .map(l => l.replace(/^\[.*?\]\s*/, '').trim())
+        .filter(l => l && !/^\(.*\)$/.test(l))  // drop whisper hallucinations like (mumbling)
+        .join(' ')
+        .trim();
       if (text) {
         console.log('耳  [them]', text.slice(0, 80));
         broadcast(text);
       }
-    } catch {}
+    } catch (e) { console.error('耳  transcribe error:', e.message); }
     finally {
       try { fs.unlinkSync(tmpPcm); } catch {}
       try { fs.unlinkSync(tmpWav); } catch {}
