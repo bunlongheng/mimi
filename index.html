@@ -306,6 +306,7 @@ button:disabled { opacity:.3; cursor:not-allowed; }
 <div class="live-bar">
   <div class="live-inner">
     <div class="live-text" id="youLive"></div>
+    <div id="sysAudioStatus" style="font-size:10px;color:var(--muted);font-family:'SF Mono',monospace;min-height:14px"></div>
     <div style="display:flex;gap:8px">
       <button id="btnSysAudio" style="display:none;flex:1;border-color:rgba(34,197,94,.4);color:#16a34a" onclick="startCaptureAuto()">+ System Audio</button>
       <button id="btnStop" style="flex:1" onclick="stopEverything()">Stop</button>
@@ -540,15 +541,20 @@ async function startCaptureAuto() {
       if (!captureOn) return;
       const blob=new Blob(chunks,{type:'audio/webm'});
       console.log('[mimi] chunk blob size:', blob.size);
-      if (blob.size<500) { startChunk(); return; }
+      document.getElementById('sysAudioStatus').textContent=`🎧 chunk ${Math.round(blob.size/1024)}KB`;
+      if (blob.size<500) {
+        document.getElementById('sysAudioStatus').textContent='🎧 silent chunk';
+        startChunk(); return;
+      }
       try {
         const buf=await blob.arrayBuffer();
         const r=await fetch('/api/transcribe',{method:'POST',headers:{'Content-Type':'audio/webm'},body:buf});
         const d=await r.json();
         console.log('[mimi] transcribe result:', d);
+        document.getElementById('sysAudioStatus').textContent = d.text?.trim() ? `🎧 got: "${d.text.trim().slice(0,30)}…"` : '🎧 transcribed (silent)';
         if (d.text?.trim()) { addBubble('them',d.text.trim()); renderLive(null,'','them'); }
         else renderLive(null,'','them');
-      } catch(e) { console.error('[mimi] transcribe error:', e); renderLive(null,'','them'); }
+      } catch(e) { console.error('[mimi] transcribe error:', e); document.getElementById('sysAudioStatus').textContent=`🎧 error: ${e.message}`; renderLive(null,'','them'); }
       startChunk();
     };
     try { captureRecorder=rec; rec.start(); } catch { captureOn=false; return; }
